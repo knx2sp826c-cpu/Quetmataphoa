@@ -1,90 +1,163 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tạp Hoá Ngại Hường</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tạp Hoá Ngại Hường Pro</title>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
-        body { font-family: sans-serif; background: #f2f2f7; margin: 0; padding: 10px; }
-        .header { background: white; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
-        #camera-box { width: 100%; height: 160px; background: #000; border-radius: 12px; overflow: hidden; border: 3px solid #007aff; margin-top: 10px; }
+        :root { --primary: #007aff; --success: #34c759; --danger: #ff3b30; --bg: #f2f2f7; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 180px; }
+        .header { background: white; padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        #status-dot { width: 12px; height: 12px; border-radius: 50%; background: #ffcc00; display: inline-block; margin-right: 5px; }
+        #camera-box { width: 100%; height: 180px; background: #000; border-radius: 20px; overflow: hidden; border: 3px solid var(--primary); margin-top: 10px; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        .card { background: white; padding: 15px; border-radius: 15px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn { width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: bold; font-size: 18px; margin-top: 10px; cursor: pointer; }
-        .btn-blue { background: #007aff; color: white; }
+        .card { background: white; padding: 15px; border-radius: 15px; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        input { width: 100%; font-size: 16px; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-blue { background: var(--primary); color: white; margin-bottom: 8px; }
+        .btn-purple { background: #5856d6; color: white; }
+        .btn-green { background: var(--success); color: white; }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
+        .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
     </style>
 </head>
 <body>
     <div class="header">
         <h2 style="margin:0; color:#d70119;">NGẠI HƯỜNG PRO</h2>
-        <span id="stt" style="font-size:12px; font-weight:bold; color:orange;">● Đang nối...</span>
-    </div>
-    <div id="camera-box"><video id="video"></video></div>
-    <div id="new-area" class="card" style="display:none; background:#fff9c4;">
-        <b>MÓN MỚI:</b><br>
-        <input id="in-name" type="text" placeholder="Tên món" style="width:100%; padding:10px; margin:5px 0; border:1px solid #ccc; border-radius:8px;">
-        <input id="in-price" type="number" placeholder="Giá" style="width:100%; padding:10px; margin:5px 0; border:1px solid #ccc; border-radius:8px;">
-        <button class="btn" style="background:#34c759; color:white;" onclick="saveNew()">LƯU HỆ THỐNG</button>
-    </div>
-    <div class="card" id="cart"></div>
-    <div style="height:150px;"></div>
-    <div style="position:fixed; bottom:20px; left:15px; right:15px; background:white; padding:15px; border-radius:20px; box-shadow:0 -5px 15px rgba(0,0,0,0.1);">
-        <div style="display:flex; justify-content:space-between; font-size:20px; font-weight:bold; color:red; margin-bottom:10px;">
-            <span>TỔNG:</span><span id="total">0 ₫</span>
+        <div style="display:flex; align-items:center; font-size:12px; font-weight:bold;">
+            <span id="status-dot"></span> <span id="status-text">Đang kết nối...</span>
         </div>
-        <button class="btn btn-blue" onclick="checkout()">XONG KHÁCH - LƯU DOANH THU</button>
     </div>
+
+    <div id="camera-box"><video id="video"></video></div>
+
+    <div id="new-product-area" class="card" style="display:none; border: 2px solid #fbc02d;">
+        <b style="color:#fbc02d">MÓN MỚI CHƯA CÓ TRÊN KỆ:</b>
+        <input id="in-name" type="text" placeholder="Tên hàng (vd: Giấy ăn)">
+        <input id="in-price" type="number" placeholder="Giá bán (vd: 15000)">
+        <button class="btn btn-green" onclick="saveToCloud()">LƯU VÀO HỆ THỐNG</button>
+        <button class="btn" style="background:#eee; margin-top:5px;" onclick="cancelNew()">HỦY</button>
+    </div>
+
+    <div class="card">
+        <b style="color:#555">DANH SÁCH ĐANG QUÉT:</b>
+        <div id="cart-list" style="margin-top:10px;">
+            <p style="color:#999; text-align:center;">Chưa có món nào. Hãy đưa mã vạch vào camera!</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div style="display:flex; justify-content:space-between; font-size:22px; font-weight:bold; color:var(--danger); margin-bottom:15px;">
+            <span>TỔNG CỘNG:</span><span id="bill-total">0 ₫</span>
+        </div>
+        <button class="btn btn-blue" onclick="processCheckout()">XONG KHÁCH - LƯU DOANH THU</button>
+        <button class="btn btn-purple" onclick="viewHistory()">XEM LỊCH SỬ BÁN HÀNG</button>
+    </div>
+
 <script>
-    const API = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec";
-    let prods = {}, cart = [], lock = false;
-    const reader = new ZXing.BrowserBarcodeReader();
-
-    async function init() {
-        try {
-            const r = await fetch(API); const d = await r.json();
-            d.forEach(i => prods[i.Barcode] = { n: i.Name, p: parseInt(i.Price) });
-            document.getElementById('stt').innerText = "● Đã đồng bộ"; document.getElementById('stt').style.color="green";
-        } catch(e) { document.getElementById('stt').innerText = "● Ngoại tuyến"; }
-    }
+    // DÁN LINK /exec CỦA BẠN VÀO ĐÂY
+    const API_URL = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec";
     
-    reader.decodeFromVideoDevice(null, 'video', (res) => {
-        if (res && !lock) {
-            lock = true; const c = res.text;
-            if (prods[c]) {
-                let itm = cart.find(i => i.c === c);
-                if (itm) itm.q++; else cart.push({ c: c, n: prods[c].n, p: prods[c].p, q: 1 });
-                render(); setTimeout(() => lock = false, 800);
-            } else {
-                window.activeC = c; document.getElementById('new-area').style.display='block';
-            }
+    // Link xem báo cáo (Trang tính 3) - Bạn có thể thay link Google Sheets của bạn vào đây
+    const SHEET_LINK = "https://docs.google.com/spreadsheets/d/1emE2-PGMZU8epGKC8FXf1FANXIRR09lqY6dPTN8ieexhDPolt9vWzT7-/edit#gid=Trang tính3";
+
+    let globalProds = {}, cart = [], scanLock = false;
+    const codeReader = new ZXing.BrowserBarcodeReader();
+
+    async function loadData() {
+        try {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            data.forEach(i => globalProds[i.Barcode] = { name: i.Name, price: parseInt(i.Price) });
+            document.getElementById("status-dot").style.background = "#34c759";
+            document.getElementById("status-text").innerText = "Đã đồng bộ";
+            startScan();
+        } catch (e) { 
+            document.getElementById("status-dot").style.background = "#ff3b30";
+            document.getElementById("status-text").innerText = "Lỗi kết nối Cloud";
         }
-    });
-
-    async function saveNew() {
-        const n = document.getElementById('in-name').value, p = document.getElementById('in-price').value;
-        await fetch(API, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeC, Name: n, Price: p }] }) });
-        location.reload();
     }
 
-    function render() {
-        let t = 0;
-        document.getElementById('cart').innerHTML = cart.map(i => {
-            t += i.p * i.q;
-            return `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:8px 0;"><b>${i.n} x${i.q}</b><span>${(i.p*i.q).toLocaleString()}đ</span></div>`;
+    function startScan() {
+        codeReader.decodeFromVideoDevice(null, 'video', (result) => {
+            if (result && !scanLock) {
+                const code = result.text; scanLock = true;
+                if (globalProds[code]) {
+                    addItemToCart(code);
+                    setTimeout(() => scanLock = false, 1000);
+                } else {
+                    window.activeBarcode = code;
+                    document.getElementById("new-product-area").style.display = "block";
+                }
+            }
+        });
+    }
+
+    function addItemToCart(code) {
+        let item = cart.find(i => i.barcode === code);
+        if (item) item.qty++; 
+        else cart.push({ barcode: code, name: globalProds[code].name, price: globalProds[code].price, qty: 1 });
+        updateUI();
+    }
+
+    function updateUI() {
+        const list = document.getElementById("cart-list");
+        if (cart.length === 0) {
+            list.innerHTML = `<p style="color:#999; text-align:center;">Chưa có món nào.</p>`;
+            document.getElementById("bill-total").innerText = "0 ₫";
+            return;
+        }
+        let total = 0;
+        list.innerHTML = cart.map((item) => {
+            total += item.price * item.qty;
+            return `<div class="item-row">
+                <b>${item.name} (x${item.qty})</b>
+                <span>${(item.price * item.qty).toLocaleString()}đ</span>
+            </div>`;
         }).join('');
-        document.getElementById('total').innerText = t.toLocaleString() + " ₫";
+        document.getElementById("bill-total").innerText = total.toLocaleString() + " ₫";
     }
 
-    async function checkout() {
-        if (!cart.length) return;
-        const totalNum = cart.reduce((s, i) => s + (i.p * i.q), 0);
-        const day = new Date().toLocaleDateString('vi-VN');
-        // Gửi số tiền dạng NUMBER thuần túy
-        await fetch(API, { method: 'POST', body: JSON.stringify({ type: "history", time: day, total: Number(totalNum) }) });
-        alert("Đã thanh toán: " + totalNum.toLocaleString() + "đ");
-        cart = []; render(); lock = false;
+    async function saveToCloud() {
+        const name = document.getElementById("in-name").value;
+        const price = document.getElementById("in-price").value;
+        if(!name || !price) { alert("Vui lòng nhập đủ tên và giá!"); return; }
+        try {
+            document.getElementById("status-text").innerText = "Đang lưu...";
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] }) });
+            location.reload(); 
+        } catch (e) { alert("Lỗi khi lưu sản phẩm mới!"); }
     }
-    init();
+
+    function cancelNew() {
+        document.getElementById("new-product-area").style.display = "none";
+        scanLock = false;
+    }
+
+    async function processCheckout() {
+        if (cart.length === 0) return;
+        const totalVal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        const today = new Date().toLocaleDateString('vi-VN');
+        
+        try {
+            document.getElementById("status-text").innerText = "Đang lưu doanh thu...";
+            await fetch(API_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({ type: "history", time: today, total: Number(totalVal) }) 
+            });
+            alert("Đã xong! Doanh thu đã được lưu: " + totalVal.toLocaleString() + "đ");
+            cart = []; updateUI(); scanLock = false;
+            document.getElementById("status-text").innerText = "Đã đồng bộ";
+        } catch (e) { alert("Lỗi khi gửi dữ liệu doanh thu!"); }
+    }
+
+    function viewHistory() {
+        // Mở link Google Sheets Trang tính 3
+        window.open(SHEET_LINK, '_blank');
+    }
+
+    window.onload = loadData;
 </script>
 </body>
 </html>

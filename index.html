@@ -156,3 +156,188 @@ renderHistory();
 
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Tính Tiền Tạp Hoá PRO</title>
+
+<script src="https://unpkg.com/@zxing/library@latest"></script>
+
+<style>
+  body { font-family: -apple-system, system-ui; background: #f0f2f5; padding: 15px; margin: 0; }
+  h2 { text-align: center; color: #1c1e21; }
+  .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
+  input { width: 100%; font-size: 16px; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+  button { width: 100%; font-size: 16px; padding: 12px; margin: 5px 0; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+  .btn-scan { background: #007aff; color: white; }
+  .btn-add { background: #34c759; color: white; }
+  .btn-finish { background: #ff9500; color: white; margin-top: 20px; }
+  
+  .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+  .item-info { flex-grow: 1; }
+  .qty-controls { display: flex; align-items: center; gap: 10px; }
+  .btn-qty { width: 30px; height: 30px; padding: 0; background: #e5e5ea; color: black; border-radius: 50%; }
+  
+  .total-box { font-size: 22px; font-weight: bold; text-align: right; color: #d70119; margin: 15px 0; }
+  video { width: 100%; border-radius: 12px; display: none; margin-bottom: 10px; background: #000; }
+  .history-item { font-size: 14px; color: #666; padding: 5px 0; }
+</style>
+</head>
+
+<body>
+
+<h2>🧾 MÁY TÍNH TIỀN</h2>
+
+<div class="card">
+  <video id="camera" playsinline webkit-playsinline></video>
+  <button class="btn-scan" onclick="startScan()">📷 QUÉT MÃ VẠCH</button>
+  
+  <input id="name" placeholder="Tên sản phẩm" />
+  <input id="price" type="number" placeholder="Giá bán (₫)" />
+  <input id="qty" type="number" value="1" placeholder="Số lượng" />
+  
+  <button class="btn-add" onclick="addItem()">➕ THÊM VÀO GIỎ</button>
+</div>
+
+<div class="card">
+  <div id="list"><i>Chưa có món nào...</i></div>
+  <div class="total-box" id="total">TỔNG: 0 ₫</div>
+  <button class="btn-finish" onclick="finishBill()">✅ HOÀN TẤT & LƯU HÓA ĐƠN</button>
+</div>
+
+<div class="card">
+  <h3>📚 Lịch sử hôm nay</h3>
+  <div id="history"></div>
+  <hr>
+  <div class="total-box" id="dayTotal" style="font-size: 18px;">TỔNG NGÀY: 0 ₫</div>
+</div>
+
+<script>
+let bill = [];
+let currentCode = null;
+const products = JSON.parse(localStorage.getItem("products") || "{}");
+const bills = JSON.parse(localStorage.getItem("bills") || "{}");
+const today = new Date().toLocaleDateString("vi-VN");
+if (!bills[today]) bills[today] = [];
+
+function startScan() {
+  const video = document.getElementById("camera");
+  video.style.display = "block";
+  const reader = new ZXing.BrowserBarcodeReader();
+  reader.decodeFromVideoDevice(null, "camera", (res, err) => {
+    if (res) {
+      reader.reset();
+      video.style.display = "none";
+      currentCode = res.text;
+      
+      if (products[currentCode]) {
+        document.getElementById("name").value = products[currentCode].name;
+        document.getElementById("price").value = products[currentCode].price;
+      } else {
+        document.getElementById("name").value = "";
+        document.getElementById("price").value = "";
+        alert("Mã mới: " + currentCode + ". Vui lòng nhập tên và giá.");
+      }
+    }
+  });
+}
+
+function addItem() {
+  const n = document.getElementById("name").value;
+  const p = Number(document.getElementById("price").value);
+  const q = Number(document.getElementById("qty").value);
+
+  if (!n || !p || q <= 0) {
+    alert("Vui lòng nhập đủ Tên, Giá và Số lượng!");
+    return;
+  }
+
+  // CẬP NHẬT HOẶC THÊM MỚI VÀO DANH MỤC (Lưu giá mới nhất)
+  if (currentCode) {
+    products[currentCode] = { name: n, price: p };
+    localStorage.setItem("products", JSON.stringify(products));
+  }
+
+  // Thêm vào danh sách chờ thanh toán
+  const existingItem = bill.find(item => item.name === n && item.price === p);
+  if (existingItem) {
+    existingItem.qty += q;
+  } else {
+    bill.push({ name: n, price: p, qty: q });
+  }
+
+  // Reset form
+  document.getElementById("name").value = "";
+  document.getElementById("price").value = "";
+  document.getElementById("qty").value = "1";
+  currentCode = null;
+
+  renderBill();
+}
+
+function updateQty(index, delta) {
+  bill[index].qty += delta;
+  if (bill[index].qty <= 0) bill.splice(index, 1);
+  renderBill();
+}
+
+function renderBill() {
+  const listDiv = document.getElementById("list");
+  let html = "";
+  let sum = 0;
+  
+  bill.forEach((item, index) => {
+    const s = item.price * item.qty;
+    sum += s;
+    html += `
+      <div class="item-row">
+        <div class="item-info">
+          <b>${item.name}</b><br>
+          <small>${item.price.toLocaleString()} ₫</small>
+        </div>
+        <div class="qty-controls">
+          <button class="btn-qty" onclick="updateQty(${index}, -1)">-</button>
+          <span>${item.qty}</span>
+          <button class="btn-qty" onclick="updateQty(${index}, 1)">+</button>
+        </div>
+        <div style="min-width: 80px; text-align: right;">${s.toLocaleString()} ₫</div>
+      </div>`;
+  });
+  
+  listDiv.innerHTML = html || "<i>Chưa có món nào...</i>";
+  document.getElementById("total").innerText = "TỔNG: " + sum.toLocaleString() + " ₫";
+}
+
+function finishBill() {
+  if (bill.length === 0) return;
+  const sum = bill.reduce((t, i) => t + i.price * i.qty, 0);
+  bills[today].push({ time: new Date().toLocaleTimeString(), total: sum });
+  localStorage.setItem("bills", JSON.stringify(bills));
+  bill = [];
+  renderBill();
+  renderHistory();
+  alert("Đã lưu hóa đơn!");
+}
+
+function renderHistory() {
+  const historyDiv = document.getElementById("history");
+  let html = "";
+  let sum = 0;
+  if (bills[today]) {
+    bills[today].forEach(b => {
+      html += `<div class="history-item">🕒 ${b.time} - 💰 ${b.total.toLocaleString()} ₫</div>`;
+      sum += b.total;
+    });
+  }
+  historyDiv.innerHTML = html || "Chưa có giao dịch.";
+  document.getElementById("dayTotal").innerText = "TỔNG NGÀY: " + sum.toLocaleString() + " ₫";
+}
+
+renderHistory();
+</script>
+
+</body>
+</html>

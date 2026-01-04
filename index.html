@@ -6,176 +6,137 @@
     <title>Hường Ngại App</title>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
-        :root { --primary: #d70119; --success: #34c759; --danger: #ff3b30; --bg: #f2f2f7; }
+        :root { --primary: #d70119; --success: #007aff; --bg: #f2f2f7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 200px; }
         .header { background: white; padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        #status-dot { width: 10px; height: 10px; border-radius: 50%; background: #34c759; display: inline-block; }
         #camera-box { width: 100%; height: 180px; background: #000; border-radius: 20px; overflow: hidden; border: 3px solid var(--primary); margin-top: 10px; position: relative; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        /* Hiệu ứng tia quét quét nhanh */
-        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(52, 199, 89, 0.7); box-shadow: 0 0 8px 1px #34c759; animation: scan 2s linear infinite; }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
         .card { background: white; padding: 15px; border-radius: 15px; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         input { width: 100%; font-size: 16px; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .btn-blue { background: #007aff; color: white; margin-bottom: 8px; }
-        .btn-purple { background: #5856d6; color: white; width: 48%; }
-        .btn-orange { background: #ff9500; color: white; width: 48%; }
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-blue { background: var(--success); color: white; margin-top: 10px; }
+        .btn-dark { background: #333; color: white; }
         .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
         .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-        .receipt-modal { display: none; position: fixed; top: 10%; left: 5%; width: 90%; height: 70%; background: white; z-index: 1000; border-radius: 20px; padding: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.3); overflow-y: auto; }
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        
+        /* Giao diện Hóa đơn hiện lên sau khi thanh toán */
+        .receipt-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; text-align: center; }
+        .receipt-table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left; }
+        .receipt-table th { border-bottom: 1px dashed #000; padding: 10px 0; }
+        .receipt-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
+
     <div class="header">
         <h2 style="margin:0; color:var(--primary);">HƯỜNG NGẠI APP</h2>
-        <div style="font-size:12px;"><span id="status-dot"></span> <span id="status-text">Đã đồng bộ</span></div>
+        <div style="font-size:12px; font-weight:bold; color:green;">● Đã đồng bộ</div>
     </div>
 
-    <div id="camera-box">
-        <video id="video"></video>
-        <div class="scan-line"></div>
-    </div>
-
-    <div id="new-product-area" class="card" style="display:none; border: 2px solid #ff9500;">
-        <b style="color:#ff9500">MÓN MỚI CHƯA CÓ:</b>
-        <input id="in-name" type="text" placeholder="Tên hàng">
-        <input id="in-price" type="number" placeholder="Giá bán">
-        <button id="btn-save-new" class="btn" style="background:var(--success); color:white" onclick="saveToCloud()">LƯU VÀO KỆ</button>
-        <button class="btn" style="background:#eee; margin-top:5px; padding:8px" onclick="cancelNew()">HỦY</button>
-    </div>
+    <div id="camera-box"><video id="video"></video></div>
 
     <div class="card">
-        <b>GIỎ HÀNG HIỆN TẠI:</b>
-        <div id="cart-list" style="margin-top:10px;"><p style="color:#999; text-align:center;">Đang chờ quét...</p></div>
+        <b>DANH SÁCH ĐANG QUÉT:</b>
+        <div id="cart-list" style="margin-top:10px;"><p style="color:#999; text-align:center;">Đang chờ mã vạch...</p></div>
     </div>
 
-    <div class="overlay" id="overlay" onclick="closeReceipt()"></div>
-    <div class="receipt-modal" id="receipt-modal">
-        <h3 style="text-align:center; color:var(--primary);">HÓA ĐƠN VỪA XONG</h3>
-        <div id="receipt-content"></div>
-        <button class="btn btn-blue" style="margin-top:20px;" onclick="closeReceipt()">ĐÓNG</button>
+    <div id="bill-screen" class="receipt-overlay">
+        <h2 style="margin-bottom:5px;">TẠP HOÁ NGẠI HƯỜNG</h2>
+        <div id="bill-time" style="font-size:14px; margin-bottom:15px;"></div>
+        <hr style="border: 1px dashed #000;">
+        <table class="receipt-table">
+            <thead>
+                <tr><th>Món</th><th style="text-align:center;">SL</th><th style="text-align:right;">Tiền</th></tr>
+            </thead>
+            <tbody id="bill-items"></tbody>
+        </table>
+        <h2 style="text-align:right; margin-top:20px;">TỔNG: <span id="bill-final-total" style="color:red;"></span></h2>
+        
+        <div style="margin-top:30px;">
+            <button class="btn btn-dark" onclick="window.print()"><img src="https://img.icons8.com/ios-filled/20/ffffff/print.png"/> IN HÓA ĐƠN</button>
+            <button class="btn btn-blue" onclick="continueScanning()">XONG - TIẾP TỤC QUÉT</button>
+        </div>
     </div>
 
     <div class="footer">
-        <div style="display:flex; justify-content:space-between; font-size:24px; font-weight:bold; color:var(--danger); margin-bottom:12px;">
-            <span>TỔNG:</span><span id="bill-total">0 ₫</span>
+        <div style="display:flex; justify-content:space-between; font-size:24px; font-weight:bold; color:#ff3b30; margin-bottom:12px;">
+            <span>TỔNG:</span><span id="display-total">0 ₫</span>
         </div>
-        <button class="btn btn-blue" onclick="processCheckout()">XONG KHÁCH - LƯU DOANH THU</button>
-        <div style="display:flex; justify-content:space-between; margin-top:8px;">
-            <button class="btn btn-orange" onclick="showLastReceipt()">XEM HÓA ĐƠN</button>
-            <button class="btn btn-purple" onclick="viewHistory()">LỊCH SỬ TỔNG</button>
-        </div>
+        <button class="btn btn-blue" style="font-size:18px;" onclick="processCheckout()">XONG KHÁCH - THANH TOÁN</button>
     </div>
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec";
-    const SHEET_URL = "https://docs.google.com/spreadsheets/d/1emE2-PGMZU8epGKC8FXf1FANXIRR09lqY6dPTN8ieexhDPolt9vWzT7-/edit#gid=1114532930";
-
-    // Tiếng bíp âm thanh
     const beep = new Audio('https://www.soundjay.com/buttons/sounds/beep-07.mp3');
-    
-    let globalProds = {}, cart = [], lastCart = [], scanLock = false;
+    let globalProds = {}, cart = [], scanLock = false;
     const codeReader = new ZXing.BrowserBarcodeReader();
 
-    async function loadData() {
+    async function initApp() {
         try {
             const res = await fetch(API_URL);
             const data = await res.json();
             data.forEach(i => globalProds[i.Barcode] = { name: i.Name, price: parseInt(i.Price) });
-            document.getElementById("status-dot").style.background = "#34c759";
-        } catch (e) { document.getElementById("status-text").innerText = "Lỗi Cloud"; }
+            startScanner();
+        } catch (e) { console.log("Lỗi tải dữ liệu"); }
     }
 
-    function startScan() {
-        // Tối ưu hóa quét: set khoảng thời gian nhận diện nhanh hơn (80ms)
-        codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+    function startScanner() {
+        codeReader.decodeFromVideoDevice(null, 'video', (result) => {
             if (result && !scanLock) {
                 const code = result.text;
                 if (globalProds[code]) {
-                    beep.play(); // Kêu bíp
-                    addItemToCart(code);
-                    scanLock = true;
-                    setTimeout(() => scanLock = false, 600); // Tăng tốc độ chờ quét món tiếp theo
-                } else {
-                    window.activeBarcode = code;
-                    document.getElementById("new-product-area").style.display = "block";
-                    scanLock = true;
+                    beep.play();
+                    let item = cart.find(i => i.barcode === code);
+                    if (item) item.qty++; 
+                    else cart.push({ barcode: code, name: globalProds[code].name, price: globalProds[code].price, qty: 1 });
+                    updateMainUI();
+                    scanLock = true; setTimeout(() => scanLock = false, 800);
                 }
             }
         });
     }
 
-    function addItemToCart(code) {
-        let item = cart.find(i => i.barcode === code);
-        if (item) item.qty++; 
-        else cart.push({ barcode: code, name: globalProds[code].name, price: globalProds[code].price, qty: 1 });
-        updateUI();
-    }
-
-    function updateUI() {
+    function updateMainUI() {
         const list = document.getElementById("cart-list");
-        if (cart.length === 0) {
-            list.innerHTML = `<p style="color:#999; text-align:center;">Đang chờ quét...</p>`;
-            document.getElementById("bill-total").innerText = "0 ₫";
-            return;
-        }
         let total = 0;
-        list.innerHTML = cart.map((item) => {
-            total += item.price * item.qty;
-            return `<div class="item-row"><b>${item.name} (x${item.qty})</b><span>${(item.price * item.qty).toLocaleString()}đ</span></div>`;
+        if (cart.length === 0) { list.innerHTML = "<p>Đang chờ...</p>"; return; }
+        list.innerHTML = cart.map(i => {
+            total += i.price * i.qty;
+            return `<div class="item-row"><b>${i.name} (x${i.qty})</b><span>${(i.price * i.qty).toLocaleString()}đ</span></div>`;
         }).join('');
-        document.getElementById("bill-total").innerText = total.toLocaleString() + " ₫";
+        document.getElementById("display-total").innerText = total.toLocaleString() + " ₫";
     }
 
     async function processCheckout() {
         if (cart.length === 0) return;
-        const totalVal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        const today = new Date().toLocaleTimeString('vi-VN') + " " + new Date().toLocaleDateString('vi-VN');
-        try {
-            document.getElementById("status-text").innerText = "Đang gửi...";
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ type: "history", time: today, total: Number(totalVal) }) });
-            
-            lastCart = [...cart]; // Lưu lại hóa đơn vừa xong
-            alert("Thanh toán xong: " + totalVal.toLocaleString() + "đ");
-            cart = []; updateUI(); scanLock = false;
-            document.getElementById("status-text").innerText = "Đã đồng bộ";
-        } catch (e) { alert("Lỗi gửi dữ liệu!"); }
+        const totalVal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('vi-VN') + " " + now.toLocaleDateString('vi-VN');
+
+        // 1. Hiện màn hình hóa đơn ngay lập tức
+        document.getElementById("bill-time").innerText = timeStr;
+        document.getElementById("bill-items").innerHTML = cart.map(i => `
+            <tr>
+                <td>${i.name}</td>
+                <td style="text-align:center;">${i.qty}</td>
+                <td style="text-align:right;">${(i.price * i.qty).toLocaleString()}</td>
+            </tr>
+        `).join('');
+        document.getElementById("bill-final-total").innerText = totalVal.toLocaleString() + " ₫";
+        document.getElementById("bill-screen").style.display = "block";
+
+        // 2. Gửi dữ liệu lên Google Sheets ngầm
+        fetch(API_URL, { method: 'POST', body: JSON.stringify({ type: "history", time: timeStr, total: Number(totalVal) }) });
     }
 
-    function showLastReceipt() {
-        if (lastCart.length === 0) { alert("Chưa có hóa đơn nào!"); return; }
-        const content = document.getElementById("receipt-content");
-        let t = 0;
-        content.innerHTML = lastCart.map(i => {
-            t += i.price * i.qty;
-            return `<div class="item-row"><span>${i.name} x${i.qty}</span><b>${(i.price*i.qty).toLocaleString()}đ</b></div>`;
-        }).join('') + `<hr><div class="item-row" style="font-size:20px; color:red"><b>TỔNG:</b><b>${t.toLocaleString()}đ</b></div>`;
-        document.getElementById("receipt-modal").style.display = "block";
-        document.getElementById("overlay").style.display = "block";
-    }
-
-    function closeReceipt() {
-        document.getElementById("receipt-modal").style.display = "none";
-        document.getElementById("overlay").style.display = "none";
-    }
-
-    async function saveToCloud() {
-        const name = document.getElementById("in-name").value;
-        const price = document.getElementById("in-price").value;
-        if(!name || !price) return;
-        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] }) });
-        globalProds[window.activeBarcode] = { name: name, price: parseInt(price) };
-        addItemToCart(window.activeBarcode);
-        document.getElementById("new-product-area").style.display = "none";
+    function continueScanning() {
+        cart = [];
+        updateMainUI();
+        document.getElementById("bill-screen").style.display = "none";
         scanLock = false;
     }
 
-    function cancelNew() { document.getElementById("new-product-area").style.display = "none"; scanLock = false; }
-    function viewHistory() { window.open(SHEET_URL, '_blank'); }
-
-    window.onload = async () => { await loadData(); startScan(); };
+    window.onload = initApp;
 </script>
 </body>
 </html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tính tiền tạp hoá</title>
+
+<script src="https://unpkg.com/@zxing/library@latest"></script>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont;
+  background: #f7f7f7;
+  padding: 15px;
+}
+h2 { text-align: center; }
+input, button {
+  width: 100%;
+  font-size: 18px;
+  padding: 10px;
+  margin: 6px 0;
+}
+button {
+  background: #007aff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+.list {
+  background: white;
+  padding: 10px;
+  margin-top: 10px;
+}
+.total {
+  font-size: 22px;
+  font-weight: bold;
+  text-align: right;
+}
+.history {
+  background: #fff;
+  margin-top: 15px;
+  padding: 10px;
+}
+video {
+  width: 100%;
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🧾 TÍNH TIỀN TẠP HOÁ</h2>
+
+<button onclick="startScan()">📷 Quét mã sản phẩm</button>
+<video id="camera"></video>
+
+<input id="name" placeholder="Tên hàng" />
+<input id="price" type="number" placeholder="Giá (₫)" />
+<input id="qty" type="number" placeholder="Số lượng" />
+
+<button onclick="addItem()">➕ Thêm món</button>
+
+<div class="list" id="list"></div>
+<div class="total" id="total">TỔNG: 0 ₫</div>
+
+<button onclick="finishBill()">✅ Hoàn tất hoá đơn</button>
+
+<div class="history">
+<h3>📚 Lịch sử hôm nay</h3>
+<div id="history"></div>
+<div class="total" id="dayTotal"></div>
+</div>
+
+<script>
+let bill = [];
+let currentCode = null;
+
+const products = JSON.parse(localStorage.getItem("products") || "{}");
+const bills = JSON.parse(localStorage.getItem("bills") || "{}");
+
+const today = new Date().toLocaleDateString("vi-VN");
+if (!bills[today]) bills[today] = [];
+
+function startScan() {
+  const video = document.getElementById("camera");
+  video.style.display = "block";
+  const reader = new ZXing.BrowserBarcodeReader();
+  reader.decodeFromVideoDevice(null, "camera", (res, err) => {
+    if (res) {
+      reader.reset();
+      video.style.display = "none";
+      currentCode = res.text;
+      if (products[currentCode]) {
+        name.value = products[currentCode].name;
+        price.value = products[currentCode].price;
+      } else {
+        name.value = "";
+        price.value = "";
+        alert("Mã mới – nhập tên và giá");
+      }
+    }
+  });
+}
+
+function addItem() {
+  const n = name.value;
+  const p = Number(price.value);
+  const q = Number(qty.value);
+  if (!n || !p || !q) return alert("Nhập đủ thông tin");
+
+  if (currentCode && !products[currentCode]) {
+    products[currentCode] = { name: n, price: p };
+    localStorage.setItem("products", JSON.stringify(products));
+  }
+
+  bill.push({ name: n, price: p, qty: q });
+  renderBill();
+}
+
+function renderBill() {
+  let html = "";
+  let sum = 0;
+  bill.forEach(i => {
+    const s = i.price * i.qty;
+    sum += s;
+    html += `<div>${i.name} x${i.qty} = ${s.toLocaleString()} ₫</div>`;
+  });
+  list.innerHTML = html;
+  total.innerText = "TỔNG: " + sum.toLocaleString() + " ₫";
+}
+
+function finishBill() {
+  if (bill.length === 0) return;
+  const sum = bill.reduce((t, i) => t + i.price * i.qty, 0);
+  bills[today].push({ time: new Date().toLocaleTimeString(), total: sum });
+  localStorage.setItem("bills", JSON.stringify(bills));
+  bill = [];
+  renderBill();
+  renderHistory();
+}
+
+function renderHistory() {
+  let html = "";
+  let sum = 0;
+  bills[today].forEach(b => {
+    html += `<div>${b.time} – ${b.total.toLocaleString()} ₫</div>`;
+    sum += b.total;
+  });
+  history.innerHTML = html;
+  dayTotal.innerText = "TỔNG NGÀY: " + sum.toLocaleString() + " ₫";
+}
+
+renderHistory();
+</script>
+
+</body>
+</html>

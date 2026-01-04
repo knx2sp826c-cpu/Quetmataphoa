@@ -7,6 +7,15 @@
     <style>
         body { font-family: -apple-system, sans-serif; background: #f2f2f7; margin: 0; padding: 10px; padding-bottom: 150px; -webkit-tap-highlight-color: transparent; }
         .header { background: white; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        /* Chữ 7 sắc cầu vồng */
+        .rainbow-text {
+            font-weight: 900;
+            background-image: linear-gradient(to left, violet, indigo, blue, green, orange, red);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
         #camera-box { width: 100%; height: 170px; background: #000; border-radius: 15px; overflow: hidden; border: 3px solid #007aff; margin-top: 10px; }
         video { width: 100%; height: 100%; object-fit: cover; }
         .card { background: white; padding: 12px; border-radius: 12px; margin-top: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
@@ -16,7 +25,6 @@
         .btn-purple { background: #5856d6; color: white; }
         .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); z-index: 99; }
         
-        /* Hóa đơn thiết kế y hệt ảnh mẫu */
         #bill-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; text-align: center; }
         .bill-content { max-width: 500px; margin: 0 auto; }
         .bill-title { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
@@ -32,7 +40,7 @@
 </head>
 <body>
     <div class="header">
-        <h2 style="margin:0; color:#d70119;">NGẠI HƯỜNG PRO</h2>
+        <h2 class="rainbow-text" style="margin:0;">TẠP HOÁ NGẠI HƯỜNG</h2>
         <span id="stt" style="font-size:12px; font-weight:bold; color:orange;">● Đang nối...</span>
     </div>
     
@@ -87,17 +95,40 @@
 
 <script>
     const API = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec";
-    const beep = new Audio('https://www.soundjay.com/buttons/sounds/beep-07.mp3');
     
-    let prods = {}, cart = [], lock = false;
+    // Tạo tiếng bíp bằng code (không cần file mp3) để load nhanh khi mạng yếu
+    function playBeep() {
+        try {
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = context.createOscillator();
+            const gain = context.createGain();
+            osc.connect(gain);
+            gain.connect(context.destination);
+            osc.type = "sine";
+            osc.frequency.value = 800;
+            osc.start();
+            setTimeout(() => osc.stop(), 100);
+        } catch(e) {}
+    }
+    
+    // Load dữ liệu từ bộ nhớ máy trước (phòng khi internet yếu)
+    let prods = JSON.parse(localStorage.getItem('ngai_huong_cache') || "{}");
+    let cart = [], lock = false;
     const reader = new ZXing.BrowserBarcodeReader();
 
     async function init() {
         try {
-            const r = await fetch(API); const d = await r.json();
+            const r = await fetch(API); 
+            const d = await r.json();
+            prods = {}; // Reset để cập nhật mới
             d.forEach(i => prods[i.Barcode.toString().trim()] = { n: i.Name, p: parseInt(i.Price) });
+            // Lưu lại vào bộ nhớ máy để dùng offline lần sau
+            localStorage.setItem('ngai_huong_cache', JSON.stringify(prods));
             document.getElementById('stt').innerText = "● Đã đồng bộ"; document.getElementById('stt').style.color="green";
-        } catch(e) { document.getElementById('stt').innerText = "● Ngoại tuyến"; document.getElementById('stt').style.color="red"; }
+        } catch(e) { 
+            document.getElementById('stt').innerText = "● Ngoại tuyến (Dùng bộ nhớ tạm)"; 
+            document.getElementById('stt').style.color="red"; 
+        }
     }
     
     reader.decodeFromVideoDevice(null, 'video', (res) => {
@@ -105,7 +136,7 @@
             lock = true; 
             const c = res.text.trim();
             if (prods[c]) {
-                beep.play();
+                playBeep(); // Tiếng bíp
                 addToCart(c);
                 setTimeout(() => lock = false, 1200);
             } else { 
@@ -127,6 +158,7 @@
         if(!n || !p) return alert("Nhập đủ thông tin!");
         
         prods[window.activeC] = { n: n, p: parseInt(p) };
+        localStorage.setItem('ngai_huong_cache', JSON.stringify(prods));
         addToCart(window.activeC);
         
         document.getElementById('new-area').style.display='none';
@@ -158,7 +190,6 @@
         const now = new Date();
         const timeStr = now.toLocaleTimeString('vi-VN') + " " + now.toLocaleDateString('vi-VN');
         
-        // Đổ dữ liệu vào hóa đơn chuẩn mẫu ảnh
         document.getElementById('bill-time-val').innerText = timeStr;
         document.getElementById('bill-items-body').innerHTML = cart.map(i => 
             `<tr>
@@ -171,7 +202,6 @@
         
         document.getElementById('bill-overlay').style.display = 'block';
 
-        // Gửi lịch sử
         fetch(API, { method: 'POST', body: JSON.stringify({ type: "history", time: timeStr, total: Number(totalNum) }) });
     }
 

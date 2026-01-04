@@ -6,28 +6,25 @@
     <title>Hường Ngại App</title>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
-        :root { --primary: #d70119; --success: #007aff; --bg: #f2f2f7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 200px; }
+        :root { --primary: #d70119; --success: #007aff; --bg: #f2f2f7; --purple: #5856d6; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 230px; }
         .header { background: white; padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         #camera-box { width: 100%; height: 180px; background: #000; border-radius: 20px; overflow: hidden; border: 3px solid var(--primary); margin-top: 10px; position: relative; }
         video { width: 100%; height: 100%; object-fit: cover; }
         .card { background: white; padding: 15px; border-radius: 15px; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-blue { background: var(--success); color: white; margin-top: 10px; }
+        .btn-blue { background: var(--success); color: white; }
+        .btn-purple { background: var(--purple); color: white; }
         .btn-dark { background: #333; color: white; }
         .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
         
-        /* Chỉnh sửa dòng hàng hóa có nút tăng giảm */
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-        .item-info { flex: 1; }
-        .qty-controls { display: flex; align-items: center; gap: 10px; margin-left: 10px; }
-        .btn-qty { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #ddd; background: white; font-size: 20px; font-weight: bold; display: flex; align-items: center; justify-content: center; color: #555; }
-        .btn-qty:active { background: #eee; }
+        .qty-controls { display: flex; align-items: center; gap: 10px; }
+        .btn-qty { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #ddd; background: white; font-size: 20px; font-weight: bold; }
 
         .receipt-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; text-align: center; }
         .receipt-table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left; }
         .receipt-table th { border-bottom: 1px dashed #000; padding: 10px 0; }
-        .receipt-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
@@ -41,7 +38,7 @@
 
     <div class="card">
         <b>DANH SÁCH ĐANG QUÉT:</b>
-        <div id="cart-list" style="margin-top:10px;"><p style="color:#999; text-align:center;">Đang chờ mã vạch...</p></div>
+        <div id="cart-list" style="margin-top:10px;"><p style="color:#999; text-align:center;">Sẵn sàng quét mã...</p></div>
     </div>
 
     <div id="bill-screen" class="receipt-overlay">
@@ -55,8 +52,7 @@
             <tbody id="bill-items"></tbody>
         </table>
         <h2 style="text-align:right; margin-top:20px;">TỔNG: <span id="bill-final-total" style="color:red;"></span></h2>
-        
-        <div style="margin-top:30px;">
+        <div style="margin-top:30px; display:flex; flex-direction:column; gap:10px;">
             <button class="btn btn-dark" onclick="window.print()">IN HÓA ĐƠN</button>
             <button class="btn btn-blue" onclick="continueScanning()">XONG - TIẾP TỤC QUÉT</button>
         </div>
@@ -66,12 +62,17 @@
         <div style="display:flex; justify-content:space-between; font-size:24px; font-weight:bold; color:#ff3b30; margin-bottom:12px;">
             <span>TỔNG:</span><span id="display-total">0 ₫</span>
         </div>
-        <button class="btn btn-blue" style="font-size:18px;" onclick="processCheckout()">XONG KHÁCH - THANH TOÁN</button>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="btn btn-blue" style="font-size:18px;" onclick="processCheckout()">XONG KHÁCH - THANH TOÁN</button>
+            <button class="btn btn-purple" onclick="viewHistory()">XEM LỊCH SỬ BÁN HÀNG</button>
+        </div>
     </div>
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec";
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/1emE2-PGMZU8epGKC8FXf1FANXIRR09lqY6dPTN8ieexhDPolt9vWzT7-/edit#gid=1114532930";
     const beep = new Audio('https://www.soundjay.com/buttons/sounds/beep-07.mp3');
+    
     let globalProds = {}, cart = [], scanLock = false;
     const codeReader = new ZXing.BrowserBarcodeReader();
 
@@ -81,7 +82,7 @@
             const data = await res.json();
             data.forEach(i => globalProds[i.Barcode] = { name: i.Name, price: parseInt(i.Price) });
             startScanner();
-        } catch (e) { console.log("Lỗi tải dữ liệu"); }
+        } catch (e) { alert("Lỗi kết nối dữ liệu!"); }
     }
 
     function startScanner() {
@@ -97,14 +98,11 @@
         });
     }
 
-    // Hàm thay đổi số lượng (Dùng cho cả quét mã và nút bấm)
     function changeQty(barcode, delta) {
         let item = cart.find(i => i.barcode === barcode);
         if (item) {
             item.qty += delta;
-            if (item.qty <= 0) {
-                cart = cart.filter(i => i.barcode !== barcode);
-            }
+            if (item.qty <= 0) cart = cart.filter(i => i.barcode !== barcode);
         } else if (delta > 0) {
             cart.push({ barcode: barcode, name: globalProds[barcode].name, price: globalProds[barcode].price, qty: 1 });
         }
@@ -114,26 +112,22 @@
     function updateMainUI() {
         const list = document.getElementById("cart-list");
         let total = 0;
-        if (cart.length === 0) { 
-            list.innerHTML = "<p style='color:#999; text-align:center;'>Đang chờ mã vạch...</p>"; 
+        if (cart.length === 0) {
+            list.innerHTML = "<p style='color:#999; text-align:center;'>Sẵn sàng quét mã...</p>";
             document.getElementById("display-total").innerText = "0 ₫";
-            return; 
+            return;
         }
-        
         list.innerHTML = cart.map(i => {
             total += i.price * i.qty;
             return `
                 <div class="item-row">
-                    <div class="item-info">
-                        <b>${i.name}</b><br>
-                        <span style="color:#666; font-size:14px;">${i.price.toLocaleString()}đ x ${i.qty}</span>
-                    </div>
+                    <div style="flex:1"><b>${i.name}</b><br><small>${i.price.toLocaleString()}đ</small></div>
                     <div class="qty-controls">
                         <button class="btn-qty" onclick="changeQty('${i.barcode}', -1)">-</button>
-                        <b style="min-width: 20px; text-align: center;">${i.qty}</b>
+                        <b>${i.qty}</b>
                         <button class="btn-qty" onclick="changeQty('${i.barcode}', 1)">+</button>
                     </div>
-                    <b style="margin-left:15px; min-width:80px; text-align:right;">${(i.price * i.qty).toLocaleString()}đ</b>
+                    <b style="margin-left:15px; width:80px; text-align:right;">${(i.price * i.qty).toLocaleString()}đ</b>
                 </div>`;
         }).join('');
         document.getElementById("display-total").innerText = total.toLocaleString() + " ₫";
@@ -145,25 +139,26 @@
         const now = new Date();
         const timeStr = now.toLocaleTimeString('vi-VN') + " " + now.toLocaleDateString('vi-VN');
 
+        // Hiển thị hóa đơn
         document.getElementById("bill-time").innerText = timeStr;
         document.getElementById("bill-items").innerHTML = cart.map(i => `
-            <tr>
-                <td>${i.name}</td>
-                <td style="text-align:center;">${i.qty}</td>
-                <td style="text-align:right;">${(i.price * i.qty).toLocaleString()}</td>
-            </tr>
+            <tr><td>${i.name}</td><td style="text-align:center;">${i.qty}</td><td style="text-align:right;">${(i.price*i.qty).toLocaleString()}</td></tr>
         `).join('');
         document.getElementById("bill-final-total").innerText = totalVal.toLocaleString() + " ₫";
         document.getElementById("bill-screen").style.display = "block";
 
+        // Gửi dữ liệu doanh thu
         fetch(API_URL, { method: 'POST', body: JSON.stringify({ type: "history", time: timeStr, total: Number(totalVal) }) });
     }
 
     function continueScanning() {
-        cart = [];
-        updateMainUI();
+        cart = []; updateMainUI();
         document.getElementById("bill-screen").style.display = "none";
         scanLock = false;
+    }
+
+    function viewHistory() {
+        window.open(SHEET_URL, '_blank');
     }
 
     window.onload = initApp;

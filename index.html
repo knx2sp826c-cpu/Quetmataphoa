@@ -7,7 +7,7 @@
     <style>
         body { font-family: -apple-system, sans-serif; background: #f2f2f7; margin: 0; padding: 10px; padding-bottom: 150px; -webkit-tap-highlight-color: transparent; }
         .header { background: white; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        #camera-box { width: 100%; height: 170px; background: #000; border-radius: 15px; overflow: hidden; border: 3px solid #007aff; margin-top: 10px; position: relative; }
+        #camera-box { width: 100%; height: 170px; background: #000; border-radius: 15px; overflow: hidden; border: 3px solid #007aff; margin-top: 10px; }
         video { width: 100%; height: 100%; object-fit: cover; }
         .card { background: white; padding: 12px; border-radius: 12px; margin-top: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         input { width: 100%; font-size: 16px; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
@@ -16,13 +16,18 @@
         .btn-purple { background: #5856d6; color: white; }
         .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); z-index: 99; }
         
-        /* Hóa đơn siêu thị */
-        #bill-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        .bill-paper { max-width: 400px; margin: 0 auto; padding: 10px; border: 1px solid #eee; }
-        .bill-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
-        .bill-table { width: 100%; border-collapse: collapse; }
-        .bill-table td { padding: 5px 0; font-size: 14px; }
-        .bill-total { border-top: 1px dashed #000; margin-top: 10px; padding-top: 10px; text-align: right; font-size: 20px; font-weight: bold; }
+        /* Hóa đơn thiết kế y hệt ảnh mẫu */
+        #bill-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; text-align: center; }
+        .bill-content { max-width: 500px; margin: 0 auto; }
+        .bill-title { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+        .bill-time { font-size: 14px; margin-bottom: 10px; }
+        .bill-line { border-top: 1px dashed #000; margin: 10px 0; }
+        .bill-table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: left; }
+        .bill-table th { border-bottom: 2px solid #000; padding: 8px 0; font-size: 14px; }
+        .bill-table td { padding: 10px 0; border-bottom: 1px solid #eee; font-size: 16px; }
+        .bill-total-row { display: flex; justify-content: flex-end; align-items: center; margin-top: 15px; font-size: 20px; font-weight: bold; }
+        .btn-bill-print { background: #333; color: white; margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-bill-next { background: #007aff; color: white; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -34,10 +39,10 @@
     <div id="camera-box"><video id="video" playsinline></video></div>
 
     <div id="new-area" class="card" style="display:none; border: 2px solid #fbc02d;">
-        <b style="color:red">MÓN MỚI CHƯA CÓ TRONG LỚP:</b><br>
+        <b>MÓN MỚI:</b><br>
         <input id="in-name" type="text" placeholder="Tên món">
         <input id="in-price" type="number" placeholder="Giá bán">
-        <button id="btn-save-new" class="btn" style="background:#34c759; color:white;" onclick="saveNew()">+ THÊM VÀO GIỎ & HỆ THỐNG</button>
+        <button class="btn" style="background:#34c759; color:white;" onclick="saveNew()">LƯU VÀ THÊM VÀO GIỎ</button>
     </div>
 
     <div class="card" id="cart-container">
@@ -46,17 +51,29 @@
     </div>
 
     <div id="bill-overlay">
-        <div class="bill-paper">
-            <div class="bill-header">
-                <h2 style="margin:0">TẠP HOÁ NGẠI HƯỜNG</h2>
-                <small id="bill-date"></small>
+        <div class="bill-content">
+            <div class="bill-title">TẠP HOÁ NGẠI HƯỜNG</div>
+            <div class="bill-time" id="bill-time-val"></div>
+            <div class="bill-line"></div>
+            <table class="bill-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Món</th>
+                        <th style="width: 20%; text-align: center;">SL</th>
+                        <th style="width: 30%; text-align: right;">Tiền</th>
+                    </tr>
+                </thead>
+                <tbody id="bill-items-body"></tbody>
+            </table>
+            <div class="bill-total-row">
+                TỔNG: <span id="bill-total-final" style="margin-left: 10px;"></span>
             </div>
-            <table class="bill-table" id="bill-items"></table>
-            <div class="bill-total">TỔNG: <span id="bill-total-val" style="color:red"></span></div>
-            <div style="margin-top:30px">
-                <button class="btn btn-blue" style="background:#333" onclick="window.print()">🖨️ IN HOÁ ĐƠN</button>
-                <button class="btn btn-blue" onclick="closeBill()">XONG - TIẾP TỤC QUÉT</button>
-            </div>
+            
+            <button class="btn btn-bill-print" onclick="window.print()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                IN HÓA ĐƠN
+            </button>
+            <button class="btn btn-bill-next" onclick="closeBill()">XONG - TIẾP TỤC QUÉT</button>
         </div>
     </div>
 
@@ -94,7 +111,6 @@
             } else { 
                 window.activeC = c; 
                 document.getElementById('new-area').style.display='block'; 
-                // Không gỡ lock để người dùng nhập thông tin xong mới quét tiếp
             }
         }
     });
@@ -108,12 +124,8 @@
 
     async function saveNew() {
         const n = document.getElementById('in-name').value, p = document.getElementById('in-price').value;
-        if(!n || !p) return alert("Nhập đủ tên và giá!");
+        if(!n || !p) return alert("Nhập đủ thông tin!");
         
-        const btn = document.getElementById('btn-save-new');
-        btn.innerText = "ĐANG LƯU..."; btn.disabled = true;
-
-        // Lưu vào bộ nhớ tạm để dùng ngay không cần load lại trang
         prods[window.activeC] = { n: n, p: parseInt(p) };
         addToCart(window.activeC);
         
@@ -121,10 +133,7 @@
         document.getElementById('in-name').value = '';
         document.getElementById('in-price').value = '';
 
-        // Gửi lên Google Sheets ngầm (không đợi để tránh lag)
         fetch(API, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeC, Name: n, Price: p }] }) });
-        
-        btn.innerText = "+ THÊM VÀO GIỎ & HỆ THỐNG"; btn.disabled = false;
         setTimeout(() => lock = false, 1000);
     }
 
@@ -146,18 +155,24 @@
     async function checkout() {
         if (!cart.length) return;
         const totalNum = cart.reduce((s, i) => s + (i.p * i.q), 0);
-        const dateStr = new Date().toLocaleString('vi-VN');
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('vi-VN') + " " + now.toLocaleDateString('vi-VN');
         
-        // Hiện hóa đơn
-        document.getElementById('bill-date').innerText = dateStr;
-        document.getElementById('bill-items').innerHTML = cart.map(i => 
-            `<tr><td>${i.n} x${i.q}</td><td style="text-align:right">${(i.p*i.q).toLocaleString()}</td></tr>`
+        // Đổ dữ liệu vào hóa đơn chuẩn mẫu ảnh
+        document.getElementById('bill-time-val').innerText = timeStr;
+        document.getElementById('bill-items-body').innerHTML = cart.map(i => 
+            `<tr>
+                <td>${i.n}</td>
+                <td style="text-align: center;">${i.q}</td>
+                <td style="text-align: right;">${(i.p*i.q).toLocaleString()}</td>
+            </tr>`
         ).join('');
-        document.getElementById('bill-total-val').innerText = totalNum.toLocaleString() + " ₫";
+        document.getElementById('bill-total-final').innerText = totalNum.toLocaleString() + " đ";
+        
         document.getElementById('bill-overlay').style.display = 'block';
 
-        // Gửi doanh thu ngầm
-        fetch(API, { method: 'POST', body: JSON.stringify({ type: "history", time: dateStr, total: Number(totalNum) }) });
+        // Gửi lịch sử
+        fetch(API, { method: 'POST', body: JSON.stringify({ type: "history", time: timeStr, total: Number(totalNum) }) });
     }
 
     function closeBill() {

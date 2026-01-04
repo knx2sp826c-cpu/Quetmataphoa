@@ -3,18 +3,26 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tạp Hoá Ngại Hường</title>
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="https://unpkg.com/@zxing/library@0.18.6/bundle/zxing.min.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f2f2f7; margin: 0; padding: 10px; padding-bottom: 150px; }
-        .header { background: white; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
-        #camera-box { width: 100%; height: 170px; background: #000; border-radius: 15px; overflow: hidden; border: 3px solid #007aff; margin-top: 10px; }
+        body { font-family: -apple-system, sans-serif; background: #f2f2f7; margin: 0; padding: 10px; padding-bottom: 150px; -webkit-tap-highlight-color: transparent; }
+        .header { background: white; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        #camera-box { width: 100%; height: 170px; background: #000; border-radius: 15px; overflow: hidden; border: 3px solid #007aff; margin-top: 10px; position: relative; }
         video { width: 100%; height: 100%; object-fit: cover; }
         .card { background: white; padding: 12px; border-radius: 12px; margin-top: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         input { width: 100%; font-size: 16px; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; text-transform: uppercase; }
         .btn-blue { background: #007aff; color: white; }
         .btn-purple { background: #5856d6; color: white; }
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); z-index: 99; }
+        
+        /* Hóa đơn siêu thị */
+        #bill-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .bill-paper { max-width: 400px; margin: 0 auto; padding: 10px; border: 1px solid #eee; }
+        .bill-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .bill-table { width: 100%; border-collapse: collapse; }
+        .bill-table td { padding: 5px 0; font-size: 14px; }
+        .bill-total { border-top: 1px dashed #000; margin-top: 10px; padding-top: 10px; text-align: right; font-size: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -22,28 +30,47 @@
         <h2 style="margin:0; color:#d70119;">NGẠI HƯỜNG PRO</h2>
         <span id="stt" style="font-size:12px; font-weight:bold; color:orange;">● Đang nối...</span>
     </div>
-    <div id="camera-box"><video id="video"></video></div>
+    
+    <div id="camera-box"><video id="video" playsinline></video></div>
 
     <div id="new-area" class="card" style="display:none; border: 2px solid #fbc02d;">
-        <b>MÓN MỚI:</b><br>
+        <b style="color:red">MÓN MỚI CHƯA CÓ TRONG LỚP:</b><br>
         <input id="in-name" type="text" placeholder="Tên món">
         <input id="in-price" type="number" placeholder="Giá bán">
-        <button class="btn" style="background:#34c759; color:white;" onclick="saveNew()">LƯU HỆ THỐNG</button>
+        <button id="btn-save-new" class="btn" style="background:#34c759; color:white;" onclick="saveNew()">+ THÊM VÀO GIỎ & HỆ THỐNG</button>
     </div>
 
-    <div class="card" id="cart"></div>
+    <div class="card" id="cart-container">
+        <b>GIỎ HÀNG:</b>
+        <div id="cart" style="margin-top:10px; color:#888; text-align:center;">Chưa có hàng</div>
+    </div>
+
+    <div id="bill-overlay">
+        <div class="bill-paper">
+            <div class="bill-header">
+                <h2 style="margin:0">TẠP HOÁ NGẠI HƯỜNG</h2>
+                <small id="bill-date"></small>
+            </div>
+            <table class="bill-table" id="bill-items"></table>
+            <div class="bill-total">TỔNG: <span id="bill-total-val" style="color:red"></span></div>
+            <div style="margin-top:30px">
+                <button class="btn btn-blue" style="background:#333" onclick="window.print()">🖨️ IN HOÁ ĐƠN</button>
+                <button class="btn btn-blue" onclick="closeBill()">XONG - TIẾP TỤC QUÉT</button>
+            </div>
+        </div>
+    </div>
 
     <div class="footer">
         <div style="display:flex; justify-content:space-between; font-size:22px; font-weight:bold; color:red; margin-bottom:10px;">
             <span>TỔNG:</span><span id="total">0 ₫</span>
         </div>
-        <button class="btn btn-blue" onclick="checkout()">XONG KHÁCH - LƯU DOANH THU</button>
+        <button class="btn btn-blue" onclick="checkout()">XONG KHÁCH - THANH TOÁN</button>
         <button class="btn btn-purple" onclick="viewHistory()">XEM LỊCH SỬ BÁN HÀNG</button>
     </div>
 
 <script>
-    // LINK MỚI CỦA BẠN ĐÃ ĐƯỢC CẬP NHẬT VÀO ĐÂY
     const API = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec";
+    const beep = new Audio('https://www.soundjay.com/buttons/sounds/beep-07.mp3');
     
     let prods = {}, cart = [], lock = false;
     const reader = new ZXing.BrowserBarcodeReader();
@@ -51,34 +78,67 @@
     async function init() {
         try {
             const r = await fetch(API); const d = await r.json();
-            d.forEach(i => prods[i.Barcode] = { n: i.Name, p: parseInt(i.Price) });
+            d.forEach(i => prods[i.Barcode.toString().trim()] = { n: i.Name, p: parseInt(i.Price) });
             document.getElementById('stt').innerText = "● Đã đồng bộ"; document.getElementById('stt').style.color="green";
         } catch(e) { document.getElementById('stt').innerText = "● Ngoại tuyến"; document.getElementById('stt').style.color="red"; }
     }
     
     reader.decodeFromVideoDevice(null, 'video', (res) => {
         if (res && !lock) {
-            lock = true; const c = res.text;
+            lock = true; 
+            const c = res.text.trim();
             if (prods[c]) {
-                let itm = cart.find(i => i.c === c);
-                if (itm) itm.q++; else cart.push({ c: c, n: prods[c].n, p: prods[c].p, q: 1 });
-                render(); setTimeout(() => lock = false, 800);
-            } else { window.activeC = c; document.getElementById('new-area').style.display='block'; }
+                beep.play();
+                addToCart(c);
+                setTimeout(() => lock = false, 1200);
+            } else { 
+                window.activeC = c; 
+                document.getElementById('new-area').style.display='block'; 
+                // Không gỡ lock để người dùng nhập thông tin xong mới quét tiếp
+            }
         }
     });
 
+    function addToCart(c) {
+        let itm = cart.find(i => i.c === c);
+        if (itm) itm.q++; 
+        else cart.push({ c: c, n: prods[c].n, p: prods[c].p, q: 1 });
+        render();
+    }
+
     async function saveNew() {
         const n = document.getElementById('in-name').value, p = document.getElementById('in-price').value;
-        if(!n || !p) return;
-        await fetch(API, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeC, Name: n, Price: p }] }) });
-        location.reload();
+        if(!n || !p) return alert("Nhập đủ tên và giá!");
+        
+        const btn = document.getElementById('btn-save-new');
+        btn.innerText = "ĐANG LƯU..."; btn.disabled = true;
+
+        // Lưu vào bộ nhớ tạm để dùng ngay không cần load lại trang
+        prods[window.activeC] = { n: n, p: parseInt(p) };
+        addToCart(window.activeC);
+        
+        document.getElementById('new-area').style.display='none';
+        document.getElementById('in-name').value = '';
+        document.getElementById('in-price').value = '';
+
+        // Gửi lên Google Sheets ngầm (không đợi để tránh lag)
+        fetch(API, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeC, Name: n, Price: p }] }) });
+        
+        btn.innerText = "+ THÊM VÀO GIỎ & HỆ THỐNG"; btn.disabled = false;
+        setTimeout(() => lock = false, 1000);
     }
 
     function render() {
         let t = 0;
-        document.getElementById('cart').innerHTML = cart.map(i => {
+        const list = document.getElementById('cart');
+        if (cart.length === 0) { list.innerHTML = "Chưa có hàng"; return; }
+        
+        list.innerHTML = cart.map(i => {
             t += i.p * i.q;
-            return `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;"><b>${i.n} x${i.q}</b><span>${(i.p*i.q).toLocaleString()}đ</span></div>`;
+            return `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;">
+                <div><b>${i.n}</b><br><small>${i.p.toLocaleString()}đ x ${i.q}</small></div>
+                <b style="color:#000">${(i.p*i.q).toLocaleString()}đ</b>
+            </div>`;
         }).join('');
         document.getElementById('total').innerText = t.toLocaleString() + " ₫";
     }
@@ -86,15 +146,31 @@
     async function checkout() {
         if (!cart.length) return;
         const totalNum = cart.reduce((s, i) => s + (i.p * i.q), 0);
-        const day = new Date().toLocaleDateString('vi-VN');
-        await fetch(API, { method: 'POST', body: JSON.stringify({ type: "history", time: day, total: Number(totalNum) }) });
-        alert("Đã lưu doanh thu!"); cart = []; render(); lock = false;
+        const dateStr = new Date().toLocaleString('vi-VN');
+        
+        // Hiện hóa đơn
+        document.getElementById('bill-date').innerText = dateStr;
+        document.getElementById('bill-items').innerHTML = cart.map(i => 
+            `<tr><td>${i.n} x${i.q}</td><td style="text-align:right">${(i.p*i.q).toLocaleString()}</td></tr>`
+        ).join('');
+        document.getElementById('bill-total-val').innerText = totalNum.toLocaleString() + " ₫";
+        document.getElementById('bill-overlay').style.display = 'block';
+
+        // Gửi doanh thu ngầm
+        fetch(API, { method: 'POST', body: JSON.stringify({ type: "history", time: dateStr, total: Number(totalNum) }) });
+    }
+
+    function closeBill() {
+        document.getElementById('bill-overlay').style.display = 'none';
+        cart = []; 
+        render(); 
+        lock = false;
     }
 
     function viewHistory() {
-        // Link mở trực tiếp Trang tính 3 của bạn
         window.open("https://docs.google.com/spreadsheets/d/1emE2-PGMZU8epGKC8FXf1FANXIRR09lqY6dPTN8ieexhDPolt9vWzT7-/edit#gid=1114532930", "_blank");
     }
+    
     init();
 </script>
 </body>

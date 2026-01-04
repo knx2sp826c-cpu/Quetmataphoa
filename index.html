@@ -3,54 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hường Ngại App</title>
+    <title>Tạp hoá Ngại Hường</title>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
-        :root { --primary: #d70119; --success: #34c759; --danger: #ff3b30; --bg: #f2f2f7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 180px; }
+        :root { 
+            --primary: #d70119; 
+            --success: #34c759; 
+            --danger: #ff3b30; 
+            --bg: #f2f2f7;
+            /* Dải màu cầu vồng */
+            --rainbow: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
+        }
+        
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 180px; }
+        
+        /* Hiệu ứng cầu vồng cho tiêu đề */
+        .rainbow-text {
+            background: var(--rainbow);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
         .header { background: white; padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         #status-dot { width: 12px; height: 12px; border-radius: 50%; background: #34c759; display: inline-block; margin-right: 5px; }
-        #camera-box { width: 100%; height: 180px; background: #000; border-radius: 20px; overflow: hidden; border: 3px solid var(--primary); margin-top: 10px; }
+        
+        /* Camera box cải tiến */
+        #camera-box { 
+            width: 100%; 
+            height: 200px; 
+            background: #000; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            position: relative;
+            border: 3px solid transparent;
+            background-image: linear-gradient(white, white), var(--rainbow);
+            background-origin: border-box;
+            background-clip: content-box, border-box;
+            margin-top: 10px; 
+        }
+        
         video { width: 100%; height: 100%; object-fit: cover; }
+        
         .card { background: white; padding: 15px; border-radius: 15px; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         input { width: 100%; font-size: 16px; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-blue { background: #007aff; color: white; margin-bottom: 8px; }
+        
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; }
+        
+        /* Nút cầu vồng */
+        .btn-rainbow { background: var(--rainbow); margin-bottom: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .btn-rainbow:active { transform: scale(0.98); opacity: 0.9; }
+        
         .btn-purple { background: #5856d6; color: white; }
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 100; }
         .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+        
+        /* Hiệu ứng loading */
+        .loading { opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2 style="margin:0; color:var(--primary);">HƯỜNG NGẠI APP</h2>
+        <h2 class="rainbow-text" style="margin:0;">TẠP HOÁ NGẠI HƯỜNG</h2>
         <div style="display:flex; align-items:center; font-size:12px; font-weight:bold;">
-            <span id="status-dot"></span> <span id="status-text">Đã đồng bộ</span>
+            <span id="status-dot"></span> <span id="status-text">Đang kết nối...</span>
         </div>
     </div>
 
     <div id="camera-box"><video id="video"></video></div>
 
-    <div id="new-product-area" class="card" style="display:none; border: 2px solid #fbc02d;">
+    <div id="new-product-area" class="card" style="display:none; border: 2px solid #fbc02d; animation: pulse 1s infinite;">
         <b style="color:#fbc02d">MÓN MỚI CHƯA CÓ TRÊN KỆ:</b>
         <input id="in-name" type="text" placeholder="Tên hàng (vd: Giấy ăn)">
         <input id="in-price" type="number" placeholder="Giá bán (vd: 15000)">
-        <button id="btn-save-new" class="btn" style="background:var(--success); color:white" onclick="saveToCloud()">LƯU VÀO HỆ THỐNG</button>
-        <button class="btn" style="background:#eee; margin-top:5px;" onclick="cancelNew()">HỦY</button>
+        <button id="btn-save-new" class="btn btn-rainbow" onclick="saveToCloud()">LƯU VÀO HỆ THỐNG</button>
+        <button class="btn" style="background:#eee; color: #333; margin-top:5px;" onclick="cancelNew()">HỦY</button>
     </div>
 
     <div class="card">
         <b style="color:#555">DANH SÁCH ĐANG QUÉT:</b>
-        <div id="cart-list" style="margin-top:10px;">
+        <div id="cart-list" style="margin-top:10px; max-height: 150px; overflow-y: auto;">
             <p style="color:#999; text-align:center;">Đang chờ quét mã...</p>
         </div>
     </div>
 
     <div class="footer">
         <div style="display:flex; justify-content:space-between; font-size:22px; font-weight:bold; color:var(--danger); margin-bottom:15px;">
-            <span>TỔNG CỘNG:</span><span id="bill-total">0 ₫</span>
+            <span>TỔNG:</span><span id="bill-total">0 ₫</span>
         </div>
-        <button class="btn btn-blue" onclick="processCheckout()">XONG KHÁCH - LƯU DOANH THU</button>
+        <button class="btn btn-rainbow" onclick="processCheckout()">XONG KHÁCH - LƯU DOANH THU</button>
         <button class="btn btn-purple" onclick="viewHistory()">XEM LỊCH SỬ BÁN HÀNG</button>
     </div>
 
@@ -67,27 +109,46 @@
             const data = await res.json();
             globalProds = {};
             data.forEach(i => globalProds[i.Barcode] = { name: i.Name, price: parseInt(i.Price) });
-            document.getElementById("status-dot").style.background = "#34c759";
-            document.getElementById("status-text").innerText = "Đã đồng bộ";
+            setStatus("Đã đồng bộ", "#34c759");
         } catch (e) { 
-            document.getElementById("status-dot").style.background = "#ff3b30";
-            document.getElementById("status-text").innerText = "Lỗi kết nối Cloud";
+            setStatus("Lỗi kết nối Cloud", "#ff3b30");
         }
     }
 
+    function setStatus(text, color) {
+        document.getElementById("status-dot").style.background = color;
+        document.getElementById("status-text").innerText = text;
+    }
+
     function startScan() {
-        codeReader.decodeFromVideoDevice(null, 'video', (result) => {
+        // Cấu hình camera để mượt hơn
+        const constraints = {
+            video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+        };
+
+        codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
             if (result && !scanLock) {
-                const code = result.text; scanLock = true;
-                if (globalProds[code]) {
-                    addItemToCart(code);
-                    setTimeout(() => scanLock = false, 1000);
-                } else {
-                    window.activeBarcode = code;
-                    document.getElementById("new-product-area").style.display = "block";
-                }
+                const code = result.text;
+                processBarcode(code);
             }
         });
+    }
+
+    function processBarcode(code) {
+        scanLock = true; // Khóa ngay lập tức để tránh lag
+        
+        // Rung nhẹ một cái báo hiệu đã nhận mã (nếu điện thoại hỗ trợ)
+        if (navigator.vibrate) navigator.vibrate(100);
+
+        if (globalProds[code]) {
+            addItemToCart(code);
+            // Sau khi quét thành công, đợi 1.2 giây mới cho quét tiếp (tránh đơ máy)
+            setTimeout(() => { scanLock = false; }, 1200);
+        } else {
+            window.activeBarcode = code;
+            document.getElementById("new-product-area").style.display = "block";
+            // Không mở scanLock, đợi người dùng lưu xong hoặc hủy
+        }
     }
 
     function addItemToCart(code) {
@@ -116,37 +177,46 @@
         if (cart.length === 0) return;
         const totalVal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
         const today = new Date().toLocaleDateString('vi-VN');
+        
+        if(!confirm(`Xác nhận thanh toán ${totalVal.toLocaleString()}đ?`)) return;
+
         try {
-            document.getElementById("status-text").innerText = "Đang lưu...";
+            document.body.classList.add('loading');
+            setStatus("Đang lưu...", "#ff9500");
             await fetch(API_URL, { method: 'POST', body: JSON.stringify({ type: "history", time: today, total: Number(totalVal) }) });
-            alert("Đã xong! Doanh thu " + totalVal.toLocaleString() + "đ đã được ghi sổ.");
-            cart = []; updateUI(); scanLock = false;
-            document.getElementById("status-text").innerText = "Đã đồng bộ";
-        } catch (e) { alert("Lỗi khi gửi dữ liệu doanh thu!"); }
+            alert("Đã xong! Chúc mừng Ngại Hường có thêm doanh thu!");
+            cart = []; 
+            updateUI(); 
+            scanLock = false;
+            setStatus("Đã đồng bộ", "#34c759");
+        } catch (e) { 
+            alert("Lỗi khi gửi dữ liệu!"); 
+            setStatus("Lỗi lưu", "#ff3b30");
+        } finally {
+            document.body.classList.remove('loading');
+        }
     }
 
     async function saveToCloud() {
         const name = document.getElementById("in-name").value;
         const price = document.getElementById("in-price").value;
         const btn = document.getElementById("btn-save-new");
-        if(!name || !price) { alert("Vui lòng nhập đủ tên và giá!"); return; }
+        if(!name || !price) { alert("Nhập đủ tên và giá đã Hường ơi!"); return; }
         
-        btn.innerText = "Đang gửi...";
+        btn.innerText = "ĐANG LƯU...";
         btn.disabled = true;
 
         try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] }) });
-            
-            // Cập nhật bộ nhớ tại chỗ, KHÔNG reload trang
             globalProds[window.activeBarcode] = { name: name, price: parseInt(price) };
-            addItemToCart(window.activeBarcode); // Tự động thêm vào giỏ hàng vừa quét
+            addItemToCart(window.activeBarcode);
             
             document.getElementById("new-product-area").style.display = "none";
             document.getElementById("in-name").value = "";
             document.getElementById("in-price").value = "";
             
-            alert("Thành công! Đã thêm " + name + " vào giỏ hàng.");
-            loadData(); // Cập nhật ngầm danh sách
+            alert("Đã thêm món mới thành công!");
+            loadData();
         } catch (e) {
             alert("Lỗi lưu món mới!");
         } finally {

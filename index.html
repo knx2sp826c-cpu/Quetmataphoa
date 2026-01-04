@@ -3,52 +3,52 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Tạp Hoá Ngại Hường - Super Fast</title>
+<title>Tạp Hoá Ngại Hường - Pro</title>
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 <style>
   :root { --primary: #007aff; --success: #34c759; --danger: #ff3b30; --bg: #f2f2f7; }
   body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; overflow-x: hidden; }
   
-  /* Header gọn hơn */
+  /* Header & Status */
   .header { text-align: center; background: white; padding: 10px; border-radius: 12px; margin-bottom: 8px; position: relative; }
   .sync-status { position: absolute; top: 5px; right: 10px; font-size: 10px; font-weight: bold; }
 
-  /* Camera tối ưu */
+  /* Camera */
   #camera-box { width: 100%; height: 160px; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 8px; border: 2px solid var(--primary); }
   video { width: 100%; height: 100%; object-fit: cover; }
 
   .card { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 8px; }
   
-  /* Ô nhập hàng mới */
+  /* Input hàng mới */
   #new-product-area { display: none; background: #fff9c4; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 2px solid #fbc02d; }
   input { width: 100%; font-size: 18px; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
   
-  /* Danh sách hàng TO & RÕ */
+  /* Danh sách hàng */
   .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
   .item-info { flex: 1; }
   .item-name { font-size: 18px; font-weight: bold; display: block; }
-  .item-price { font-size: 14px; color: #666; }
-  
   .qty-control { display: flex; align-items: center; gap: 12px; margin: 0 10px; }
   .btn-qty { width: 42px; height: 42px; background: #eee; border: none; border-radius: 10px; font-size: 24px; font-weight: bold; color: var(--primary); }
   .qty-num { font-size: 28px; font-weight: 800; min-width: 30px; text-align: center; }
 
-  /* Thanh toán cố định */
-  .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 12px; border-top: 1px solid #ddd; z-index: 100; }
-  .total-flex { display: flex; justify-content: space-between; font-size: 22px; font-weight: 900; color: var(--danger); margin-bottom: 8px; }
-  .btn-main { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 18px; font-weight: bold; width: 100%; }
+  /* Nút chức năng ĐƯA LÊN CAO */
+  .footer-bar { position: fixed; bottom: 30px; left: 0; right: 0; background: white; padding: 15px; border-top: 1px solid #ddd; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+  .total-flex { display: flex; justify-content: space-between; font-size: 22px; font-weight: 900; color: var(--danger); margin-bottom: 10px; }
+  .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; width: 100%; }
+  .btn-history { background: #5856d6; margin-top: 8px; }
 
-  /* HÓA ĐƠN CHUẨN IN */
-  #invoice-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 15px; box-sizing: border-box; overflow-y: auto; }
-  .inv-paper { max-width: 350px; margin: 0 auto; color: #000; }
+  /* Modals */
+  .full-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+  .inv-paper { max-width: 350px; margin: 0 auto; color: #000; font-family: monospace; }
   .inv-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; }
   .inv-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
   .inv-table th { border-bottom: 1px solid #000; font-size: 14px; padding: 5px 0; }
-  .inv-table td { padding: 8px 0; font-size: 15px; vertical-align: top; }
-  .inv-total { border-top: 2px double #000; margin-top: 10px; padding-top: 8px; font-size: 20px; font-weight: bold; text-align: right; }
+  .inv-table td { padding: 8px 0; font-size: 15px; }
+  .inv-total { border-top: 2px double #000; margin-top: 10px; padding-top: 8px; font-size: 22px; font-weight: bold; text-align: right; }
   
-  .no-print { display: block; }
-  @media print { .no-print { display: none; } }
+  .history-item { border-bottom: 1px solid #ddd; padding: 10px 0; display: flex; justify-content: space-between; }
+
+  @media print { .no-print { display: none !important; } .full-modal { position: relative; padding: 0; } }
 </style>
 </head>
 <body>
@@ -58,96 +58,76 @@
     <span id="cloud-status" class="sync-status">● Đang kết nối...</span>
     <h1 style="margin:0; font-size:20px; color:#d70119;">TẠP HOÁ NGẠI HƯỜNG</h1>
   </div>
-
   <div id="camera-box"><video id="video" playsinline></video></div>
-
   <div class="card">
     <div id="new-product-area">
-      <b style="color:red">MÓN MỚI! NHẬP TÊN & GIÁ:</b>
+      <b style="color:red">SẢN PHẨM MỚI:</b>
       <input id="in-name" type="text" placeholder="Tên hàng..." />
       <input id="in-price" type="number" placeholder="Giá..." />
-      <button class="btn-main" style="background:var(--success)" onclick="saveToCloud()">LƯU & THÊM</button>
-      <button onclick="cancelNew()" style="width:100%; background:none; border:none; color:gray; margin-top:10px;">Hủy bỏ</button>
+      <button class="btn-main" style="background:var(--success)" onclick="saveToCloud()">LƯU HỆ THỐNG</button>
+      <button onclick="cancelNew()" style="width:100%; background:none; border:none; color:gray; margin-top:10px;">Hủy</button>
     </div>
     <div id="cart-list"></div>
   </div>
-
-  <div style="height: 100px;"></div> <div class="footer-bar">
-    <div class="total-flex">
-      <span>TỔNG CỘNG:</span>
-      <span id="bill-total">0 ₫</span>
-    </div>
+  <div style="height: 180px;"></div>
+  <div class="footer-bar">
+    <div class="total-flex"><span>TỔNG CỘNG:</span><span id="bill-total">0 ₫</span></div>
     <button class="btn-main" onclick="showInvoice()">XONG KHÁCH - IN ĐƠN</button>
+    <button class="btn-main btn-history" onclick="showHistory()">XEM LỊCH SỬ BÁN HÀNG</button>
   </div>
 </div>
 
-<div id="invoice-modal">
+<div id="invoice-modal" class="full-modal">
   <div class="inv-paper">
-    <div class="inv-header">
-      <h2 style="margin:0">TẠP HOÁ NGẠI HƯỜNG</h2>
-      <p id="inv-time" style="font-size:12px; margin:5px 0;"></p>
-    </div>
-    <table class="inv-table">
-      <thead>
-        <tr>
-          <th style="text-align:left; width:50%;">Món</th>
-          <th style="text-align:center; width:15%;">SL</th>
-          <th style="text-align:right; width:35%;">Tiền</th>
-        </tr>
-      </thead>
-      <tbody id="inv-body"></tbody>
-    </table>
+    <div class="inv-header"><h2 style="margin:0">TẠP HOÁ NGẠI HƯỜNG</h2><p id="inv-time"></p></div>
+    <table class="inv-table"><thead><tr><th style="text-align:left;">Món</th><th style="text-align:center;">SL</th><th style="text-align:right;">Tiền</th></tr></thead><tbody id="inv-body"></tbody></table>
     <div class="inv-total">TỔNG: <span id="inv-total">0</span> ₫</div>
-    
     <div class="no-print" style="margin-top:25px;">
-      <button class="btn-main" onclick="window.print()" style="background:#444; margin-bottom:10px;">🖨️ IN HÓA ĐƠN</button>
-      <button class="btn-main" onclick="closeAndReset()" style="background:var(--primary)">XONG - TIẾP TỤC QUÉT</button>
+      <button class="btn-main" onclick="printAndSave()" style="background:#444; margin-bottom:10px;">🖨️ IN HÓA ĐƠN</button>
+      <button class="btn-main" onclick="closeAndReset()">TIẾP TỤC QUÉT</button>
     </div>
+  </div>
+</div>
+
+<div id="history-modal" class="full-modal">
+  <h2 style="text-align:center">LỊCH SỬ BÁN HÀNG</h2>
+  <div id="history-content"></div>
+  <div style="margin-top:20px">
+    <button class="btn-main" onclick="document.getElementById('history-modal').style.display='none'">QUAY LẠI</button>
+    <button class="btn-main btn-history" style="background:#ff3b30; margin-top:10px;" onclick="clearHistory()">XÓA TẤT CẢ LỊCH SỬ</button>
   </div>
 </div>
 
 <script>
-// THAY LINK API CỦA BẠN VÀO ĐÂY
-const API_URL = "https://sheetdb.io/api/v1/t1ar7qsc5fvzy"; 
+const API_URL = "https://docs.google.com/spreadsheets/d/1-0Wrgy72zx9dgX76Wr-ebjw11njbR2EaV-hLJ0oH33M/edit?usp=drivesdk"; 
 
 let globalProds = {};
 let cart = [];
 let scanLock = false;
 const codeReader = new ZXing.BrowserBarcodeReader();
-
-// Tạo âm thanh bíp bíp
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
 function playBeep() {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = "sine"; osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
     gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.1);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
 }
 
 async function loadCloudData() {
     try {
         const res = await fetch(API_URL);
         const data = await res.json();
-        data.forEach(item => {
-            globalProds[item.Barcode] = { name: item.Name, price: parseInt(item.Price) };
-        });
-        document.getElementById("cloud-status").innerText = "● Đã đồng bộ";
+        globalProds = {};
+        data.forEach(item => { globalProds[item.Barcode] = { name: item.Name, price: parseInt(item.Price) }; });
+        document.getElementById("cloud-status").innerText = "● Đã đồng bộ (" + data.length + " món)";
         document.getElementById("cloud-status").style.color = "green";
-    } catch (e) {
-        document.getElementById("cloud-status").innerText = "● Ngoại tuyến";
-        document.getElementById("cloud-status").style.color = "red";
-    }
+    } catch (e) { document.getElementById("cloud-status").innerText = "● Ngoại tuyến"; document.getElementById("cloud-status").style.color = "red"; }
 }
 
-window.addEventListener('load', () => {
-    loadCloudData();
-    startCamera();
-});
+window.addEventListener('load', () => { loadCloudData(); startCamera(); });
 
 function startCamera() {
     codeReader.decodeFromVideoDevice(null, 'video', (result) => {
@@ -155,13 +135,12 @@ function startCamera() {
             const code = result.text;
             playBeep();
             scanLock = true;
-
             if (globalProds[code]) {
                 const item = cart.find(i => i.barcode === code);
                 if (item) item.qty += 1;
                 else cart.push({ barcode: code, name: globalProds[code].name, price: globalProds[code].price, qty: 1 });
                 updateUI();
-                setTimeout(() => { scanLock = false; }, 1200); // Tăng độ nhạy (nghỉ 1.2s thay vì 1.5s)
+                setTimeout(() => { scanLock = false; }, 1200);
             } else {
                 window.activeBarcode = code;
                 document.getElementById("new-product-area").style.display = "block";
@@ -175,52 +154,29 @@ async function saveToCloud() {
     const name = document.getElementById("in-name").value;
     const price = document.getElementById("in-price").value;
     if(!name || !price) return;
-
     try {
-        await fetch(API_URL, {
-            method: 'POST',
+        const method = globalProds[window.activeBarcode] ? 'PATCH' : 'POST';
+        const url = method === 'PATCH' ? `${API_URL}/Barcode/${window.activeBarcode}` : API_URL;
+        await fetch(url, {
+            method: method,
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] })
+            body: JSON.stringify(method === 'PATCH' ? { Name: name, Price: price } : { data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] })
         });
         globalProds[window.activeBarcode] = { name, price: parseInt(price) };
-        cart.push({ barcode: window.activeBarcode, name, price: parseInt(price), qty: 1 });
-        updateUI();
-        cancelNew();
-    } catch (e) { alert("Lỗi lưu Cloud!"); }
+        if (!cart.find(i => i.barcode === window.activeBarcode)) { cart.push({ barcode: window.activeBarcode, name, price: parseInt(price), qty: 1 }); }
+        updateUI(); cancelNew(); loadCloudData();
+    } catch (e) { alert("Lỗi kết nối Cloud!"); }
 }
 
-function cancelNew() {
-    document.getElementById("new-product-area").style.display = "none";
-    document.getElementById("in-name").value = "";
-    document.getElementById("in-price").value = "";
-    scanLock = false;
-}
-
-function changeQty(idx, amt) {
-    cart[idx].qty += amt;
-    if (cart[idx].qty <= 0) cart.splice(idx, 1);
-    updateUI();
-}
+function cancelNew() { document.getElementById("new-product-area").style.display = "none"; scanLock = false; }
+function changeQty(idx, amt) { cart[idx].qty += amt; if (cart[idx].qty <= 0) cart.splice(idx, 1); updateUI(); }
 
 function updateUI() {
     const list = document.getElementById("cart-list");
     let total = 0;
     list.innerHTML = cart.map((item, i) => {
-        const sub = item.price * item.qty;
-        total += sub;
-        return `
-        <div class="item-row">
-            <div class="item-info">
-                <span class="item-name">${item.name}</span>
-                <span class="item-price">${item.price.toLocaleString()}₫</span>
-            </div>
-            <div class="qty-control">
-                <button class="btn-qty" onclick="changeQty(${i}, -1)">-</button>
-                <span class="qty-num">${item.qty}</span>
-                <button class="btn-qty" onclick="changeQty(${i}, 1)">+</button>
-            </div>
-            <div style="font-weight:bold; width:80px; text-align:right">${sub.toLocaleString()}₫</div>
-        </div>`;
+        const sub = item.price * item.qty; total += sub;
+        return `<div class="item-row"><div class="item-info"><span class="item-name">${item.name}</span><span>${item.price.toLocaleString()}₫</span></div><div class="qty-control"><button class="btn-qty" onclick="changeQty(${i}, -1)">-</button><span class="qty-num">${item.qty}</span><button class="btn-qty" onclick="changeQty(${i}, 1)">+</button></div><div style="font-weight:bold; width:80px; text-align:right">${sub.toLocaleString()}₫</div></div>`;
     }).join('');
     document.getElementById("bill-total").innerText = total.toLocaleString() + " ₫";
 }
@@ -231,23 +187,37 @@ function showInvoice() {
     document.getElementById("inv-time").innerText = new Date().toLocaleString('vi-VN');
     let total = 0;
     document.getElementById("inv-body").innerHTML = cart.map(item => {
-        const sub = item.price * item.qty;
-        total += sub;
-        return `<tr>
-            <td>${item.name}</td>
-            <td style="text-align:center">${item.qty}</td>
-            <td style="text-align:right">${sub.toLocaleString()}</td>
-        </tr>`;
+        const sub = item.price * item.qty; total += sub;
+        return `<tr><td>${item.name}</td><td style="text-align:center">${item.qty}</td><td style="text-align:right">${sub.toLocaleString()}</td></tr>`;
     }).join('');
     document.getElementById("inv-total").innerText = total.toLocaleString();
     document.getElementById("invoice-modal").style.display = "block";
 }
 
-function closeAndReset() {
-    cart = []; updateUI();
-    document.getElementById("invoice-modal").style.display = "none";
-    scanLock = false;
+function printAndSave() {
+    const total = document.getElementById("inv-total").innerText;
+    const time = document.getElementById("inv-time").innerText;
+    let history = JSON.parse(localStorage.getItem('sale_history') || '[]');
+    history.unshift({ time, total });
+    localStorage.setItem('sale_history', JSON.stringify(history));
+    window.print();
 }
+
+function showHistory() {
+    const history = JSON.parse(localStorage.getItem('sale_history') || '[]');
+    let html = history.length ? "" : "<p style='text-align:center'>Chưa có giao dịch nào.</p>";
+    let dayTotal = 0;
+    history.forEach(item => {
+        html += `<div class="history-item"><span>${item.time}</span><b style="color:var(--danger)">${item.total} ₫</b></div>`;
+        dayTotal += parseInt(item.total.replace(/,/g, ''));
+    });
+    if (history.length) html = `<div class="card" style="background:#e5e5ea; text-align:center"><h3>TỔNG DOANH THU: ${dayTotal.toLocaleString()} ₫</h3></div>` + html;
+    document.getElementById("history-content").innerHTML = html;
+    document.getElementById("history-modal").style.display = "block";
+}
+
+function clearHistory() { if(confirm("Bạn có chắc muốn xóa sạch lịch sử?")) { localStorage.removeItem('sale_history'); showHistory(); } }
+function closeAndReset() { cart = []; updateUI(); document.getElementById("invoice-modal").style.display = "none"; scanLock = false; }
 </script>
 </body>
 </html>

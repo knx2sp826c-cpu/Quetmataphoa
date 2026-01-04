@@ -6,7 +6,7 @@
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
         :root { --primary: #d70119; --success: #34c759; --danger: #ff3b30; --bg: #f2f2f7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 200px; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 210px; -webkit-tap-highlight-color: transparent; }
         .rainbow-text { font-weight: 900; background-image: linear-gradient(to left, violet, indigo, blue, green, orange, red); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .header { background: white; padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         #status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ff9500; display: inline-block; margin-right: 5px; }
@@ -17,19 +17,20 @@
         .btn-blue { background: #1a73e8; color: white; }
         .btn-purple { background: #5856d6; color: white; }
         .btn-black { background: #333; color: white; }
+        
+        /* GIỎ HÀNG CHỮ TO */
         .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; font-size: 24px; } 
         .qty-controls { display: flex; align-items: center; gap: 15px; }
         .btn-qty { width: 45px; height: 45px; border-radius: 10px; border: 1px solid #007aff; background: #fff; font-size: 26px; font-weight: bold; color: #007aff; display: flex; justify-content: center; align-items: center; }
+
+        /* LỊCH SỬ & HÓA ĐƠN OVERLAY */
+        #bill-overlay, #history-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .overlay-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 15px; }
+        .bill-table, .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .bill-table th, .history-table th { border-bottom: 2px solid #333; padding: 10px 0; }
+        .bill-table td, .history-table td { padding: 12px 0; border-bottom: 1px solid #eee; }
+
         .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 100; }
-        #bill-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        .bill-header { text-align: center; margin-bottom: 20px; }
-        .bill-title { font-size: 24px; font-weight: bold; margin: 0; }
-        .bill-time { font-size: 14px; color: #666; margin-top: 5px; }
-        .bill-divider { border-top: 1px dashed #333; margin: 15px 0; }
-        .bill-table { width: 100%; border-collapse: collapse; }
-        .bill-table th { border-bottom: 1px solid #333; padding: 10px 0; font-size: 15px; }
-        .bill-table td { padding: 12px 0; font-size: 18px; border-bottom: 1px solid #eee; }
-        .total-row { display: flex; justify-content: flex-end; align-items: center; font-size: 24px; font-weight: bold; padding: 20px 0; }
     </style>
 </head>
 <body>
@@ -38,68 +39,77 @@
         <div style="display:flex; align-items:center; font-size:12px;"><span id="status-dot"></span><span id="status-text">Đang nối...</span></div>
     </div>
     <div id="camera-box"><video id="video" playsinline></video></div>
+
     <div id="new-product-area" class="card" style="display:none; border: 2px solid #fbc02d;">
         <b>MÓN MỚI CHƯA CÓ:</b>
         <input id="in-name" style="width:100%; padding:12px; margin:5px 0; border-radius:8px; border:1px solid #ddd;" type="text" placeholder="Tên hàng">
         <input id="in-price" style="width:100%; padding:12px; margin:5px 0; border-radius:8px; border:1px solid #ddd;" type="number" placeholder="Giá bán">
         <button class="btn" style="background:var(--success); color:white" onclick="saveToCloud()">LƯU VÀO HỆ THỐNG</button>
     </div>
+
     <div class="card">
         <b style="color:#555">GIỎ HÀNG:</b>
         <div id="cart-list" style="margin-top:10px;"><p style="text-align:center; color:#999; font-size: 20px;">Chưa có hàng</p></div>
     </div>
-    <div id="bill-overlay">
-        <div class="bill-header">
-            <p class="bill-title">TẠP HOÁ NGẠI HƯỜNG</p>
-            <p id="bill-time-val" class="bill-time"></p>
+
+    <div id="history-overlay">
+        <p class="overlay-title">LỊCH SỬ BÁN HÀNG TRONG NGÀY</p>
+        <div style="background: #e1f5fe; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
+            <span style="font-size: 18px;">TỔNG DOANH THU:</span><br>
+            <b id="history-day-total" style="font-size: 28px; color: #d70119;">0 ₫</b>
         </div>
-        <div class="bill-divider"></div>
+        <table class="history-table">
+            <thead><tr><th align="left">Thời gian</th><th align="right">Số tiền</th></tr></thead>
+            <tbody id="history-items-body"></tbody>
+        </table>
+        <button class="btn btn-blue" style="margin-top: 20px;" onclick="closeHistory()">ĐÓNG LỊCH SỬ</button>
+        <button class="btn btn-black" onclick="window.open(SHEET_URL, '_blank')">MỞ FILE EXCEL GỐC</button>
+    </div>
+
+    <div id="bill-overlay">
+        <div class="bill-header" style="text-align:center">
+            <p class="bill-title" style="font-size:24px; font-weight:bold;">TẠP HOÁ NGẠI HƯỜNG</p>
+            <p id="bill-time-val" style="color:#666;"></p>
+        </div>
+        <hr style="border: 1px dashed #333">
         <table class="bill-table">
             <thead><tr><th align="left">Món</th><th align="center">SL</th><th align="right">Tiền</th></tr></thead>
             <tbody id="bill-items-body"></tbody>
         </table>
-        <div class="bill-divider"></div>
-        <div class="total-row">TỔNG: <span id="bill-total-final" style="margin-left:10px; color:red;">0 ₫</span></div>
+        <p style="text-align:right; font-size:24px; font-weight:bold; margin-top:20px;">TỔNG: <span id="bill-total-final" style="color:red">0 ₫</span></p>
         <button class="btn btn-black" onclick="window.print()">🖨️ IN HÓA ĐƠN</button>
         <button class="btn btn-blue" onclick="closeBill()">XONG - TIẾP TỤC QUÉT</button>
     </div>
+
     <div class="footer">
         <div style="display:flex; justify-content:space-between; font-size:24px; font-weight:bold; color:var(--danger); margin-bottom:10px;">
             <span>TỔNG CỘNG:</span><span id="bill-total">0 ₫</span>
         </div>
         <button class="btn btn-blue" onclick="showBill()">XONG KHÁCH - THANH TOÁN</button>
-        <button class="btn btn-purple" onclick="viewHistory()">XEM LỊCH SỬ BÁN HÀNG</button>
+        <button class="btn btn-purple" onclick="openHistory()">XEM LỊCH SỬ BÁN HÀNG</button>
     </div>
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec";
     const SHEET_URL = "https://docs.google.com/spreadsheets/d/1emE2-PGMZU8epGKC8FXf1FANXIRR09lqY6dPTN8ieexhDPolt9vWzT7-/edit#gid=1114532930";
     
+    let globalProds = JSON.parse(localStorage.getItem('huong_ngai_cache') || "{}"), cart = [], saleHistory = [], scanLock = false;
+
     function playBeep() {
         try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
-            oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.1);
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         } catch(e) {}
     }
 
-    let globalProds = JSON.parse(localStorage.getItem('huong_ngai_cache') || "{}"), cart = [], scanLock = false;
-
-    // --- NÂNG CẤP QUÉT MÃ CONG/NGƯỢC/NHỎ ---
     const hints = new Map();
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.EAN_13, 
-        ZXing.BarcodeFormat.EAN_8, 
-        ZXing.BarcodeFormat.CODE_128, 
-        ZXing.BarcodeFormat.UPC_A
-    ]);
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); // Quét cực kỹ cho mã mờ/nhỏ
-    hints.set(ZXing.DecodeHintType.ASSUME_GS1, true); 
-
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.UPC_A]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
     const codeReader = new ZXing.BrowserBarcodeReader(hints);
 
     async function loadData() {
@@ -112,15 +122,7 @@
     }
 
     function startScan() {
-        // Tối ưu độ phân giải để cân bằng giữa tốc độ và độ nét khi soi mã nhỏ
-        const constraints = { 
-            video: { 
-                facingMode: "environment", 
-                width: { ideal: 1280 }, // Tăng nhẹ độ nét để đọc mã nhỏ tốt hơn
-                height: { ideal: 720 },
-                focusMode: "continuous"
-            } 
-        };
+        const constraints = { video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } };
         codeReader.decodeFromConstraints(constraints, 'video', (result) => {
             if (result && !scanLock) {
                 const code = result.text.trim(); scanLock = true; playBeep();
@@ -136,11 +138,7 @@
         updateUI();
     }
 
-    function changeQty(index, delta) {
-        cart[index].qty += delta;
-        if (cart[index].qty <= 0) cart.splice(index, 1);
-        updateUI();
-    }
+    function changeQty(i, d) { cart[i].qty += d; if (cart[i].qty <= 0) cart.splice(i, 1); updateUI(); }
 
     function updateUI() {
         const list = document.getElementById("cart-list");
@@ -166,17 +164,38 @@
         const now = new Date();
         const timeStr = now.toLocaleTimeString('vi-VN') + " " + now.toLocaleDateString('vi-VN');
         const totalVal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        
+        // Lưu vào lịch sử cục bộ trên App
+        saleHistory.unshift({ time: timeStr, total: totalVal });
+
         document.getElementById("bill-time-val").innerText = timeStr;
         document.getElementById("bill-items-body").innerHTML = cart.map(item => 
             `<tr><td>${item.name}</td><td align="center">${item.qty}</td><td align="right">${(item.price * item.qty).toLocaleString()}</td></tr>`
         ).join('');
         document.getElementById("bill-total-final").innerText = totalVal.toLocaleString() + " đ";
         document.getElementById("bill-overlay").style.display = "block";
+        
         fetch(API_URL, { method: 'POST', body: JSON.stringify({ type: "history", time: timeStr, total: Number(totalVal) }) });
     }
 
+    // CHỨC NĂNG XEM LỊCH SỬ TRÊN APP
+    function openHistory() {
+        const historyBody = document.getElementById("history-items-body");
+        let dayTotal = 0;
+        if (saleHistory.length === 0) {
+            historyBody.innerHTML = `<tr><td colspan="2" align="center">Hôm nay chưa bán đơn nào</td></tr>`;
+        } else {
+            historyBody.innerHTML = saleHistory.map(item => {
+                dayTotal += item.total;
+                return `<tr><td>${item.time}</td><td align="right"><b>${item.total.toLocaleString()} đ</b></td></tr>`;
+            }).join('');
+        }
+        document.getElementById("history-day-total").innerText = dayTotal.toLocaleString() + " ₫";
+        document.getElementById("history-overlay").style.display = "block";
+    }
+
+    function closeHistory() { document.getElementById("history-overlay").style.display = "none"; }
     function closeBill() { document.getElementById("bill-overlay").style.display = "none"; cart = []; updateUI(); scanLock = false; }
-    function viewHistory() { window.open(SHEET_URL, '_blank'); }
 
     async function saveToCloud() {
         const n = document.getElementById("in-name").value, p = document.getElementById("in-price").value;

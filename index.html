@@ -9,7 +9,7 @@
         :root { --primary: #007aff; --success: #34c759; --danger: #ff3b30; --bg: #f2f2f7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 180px; }
         .header { background: white; padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        #status-dot { width: 12px; height: 12px; border-radius: 50%; background: #ffcc00; display: inline-block; margin-right: 5px; }
+        #status-dot { width: 12px; height: 12px; border-radius: 50%; background: #ff3b30; display: inline-block; margin-right: 5px; }
         #camera-box { width: 100%; height: 180px; background: #000; border-radius: 20px; overflow: hidden; border: 3px solid var(--primary); margin-top: 10px; }
         video { width: 100%; height: 100%; object-fit: cover; }
         .card { background: white; padding: 15px; border-radius: 15px; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
@@ -17,8 +17,7 @@
         .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-blue { background: var(--primary); color: white; margin-bottom: 8px; }
         .btn-purple { background: #5856d6; color: white; }
-        .btn-green { background: var(--success); color: white; }
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
         .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
     </style>
 </head>
@@ -33,34 +32,31 @@
     <div id="camera-box"><video id="video"></video></div>
 
     <div id="new-product-area" class="card" style="display:none; border: 2px solid #fbc02d;">
-        <b style="color:#fbc02d">MÓN MỚI CHƯA CÓ TRÊN KỆ:</b>
-        <input id="in-name" type="text" placeholder="Tên hàng (vd: Giấy ăn)">
-        <input id="in-price" type="number" placeholder="Giá bán (vd: 15000)">
-        <button class="btn btn-green" onclick="saveToCloud()">LƯU VÀO HỆ THỐNG</button>
-        <button class="btn" style="background:#eee; margin-top:5px;" onclick="cancelNew()">HỦY</button>
+        <b style="color:#fbc02d">MÓN MỚI CHƯA CÓ:</b>
+        <input id="in-name" type="text" placeholder="Tên hàng">
+        <input id="in-price" type="number" placeholder="Giá bán">
+        <button class="btn" style="background:var(--success); color:white" onclick="saveToCloud()">LƯU VÀO HỆ THỐNG</button>
     </div>
 
     <div class="card">
-        <b style="color:#555">DANH SÁCH ĐANG QUÉT:</b>
-        <div id="cart-list" style="margin-top:10px;">
-            <p style="color:#999; text-align:center;">Chưa có món nào. Hãy đưa mã vạch vào camera!</p>
-        </div>
+        <b style="color:#555">GIỎ HÀNG:</b>
+        <div id="cart-list" style="margin-top:10px;"><p style="color:#999; text-align:center;">Đang chờ quét mã...</p></div>
     </div>
 
     <div class="footer">
         <div style="display:flex; justify-content:space-between; font-size:22px; font-weight:bold; color:var(--danger); margin-bottom:15px;">
-            <span>TỔNG CỘNG:</span><span id="bill-total">0 ₫</span>
+            <span>TỔNG:</span><span id="bill-total">0 ₫</span>
         </div>
         <button class="btn btn-blue" onclick="processCheckout()">XONG KHÁCH - LƯU DOANH THU</button>
         <button class="btn btn-purple" onclick="viewHistory()">XEM LỊCH SỬ BÁN HÀNG</button>
     </div>
 
 <script>
-    // DÁN LINK /exec CỦA BẠN VÀO ĐÂY
+    // LINK MỚI CỦA BẠN
     const API_URL = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec";
     
-    // Link xem báo cáo (Trang tính 3) - Bạn có thể thay link Google Sheets của bạn vào đây
-    const SHEET_LINK = "https://docs.google.com/spreadsheets/d/1emE2-PGMZU8epGKC8FXf1FANXIRR09lqY6dPTN8ieexhDPolt9vWzT7-/edit#gid=Trang tính3";
+    // LINK FILE GOOGLE SHEETS ĐỂ XEM LỊCH SỬ
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/1emE2-PGMZU8epGKC8FXf1FANXIRR09lqY6dPTN8ieexhDPolt9vWzT7-/edit#gid=1114532930";
 
     let globalProds = {}, cart = [], scanLock = false;
     const codeReader = new ZXing.BrowserBarcodeReader();
@@ -74,7 +70,6 @@
             document.getElementById("status-text").innerText = "Đã đồng bộ";
             startScan();
         } catch (e) { 
-            document.getElementById("status-dot").style.background = "#ff3b30";
             document.getElementById("status-text").innerText = "Lỗi kết nối Cloud";
         }
     }
@@ -104,57 +99,41 @@
     function updateUI() {
         const list = document.getElementById("cart-list");
         if (cart.length === 0) {
-            list.innerHTML = `<p style="color:#999; text-align:center;">Chưa có món nào.</p>`;
+            list.innerHTML = `<p style="color:#999; text-align:center;">Giỏ hàng trống</p>`;
             document.getElementById("bill-total").innerText = "0 ₫";
             return;
         }
         let total = 0;
         list.innerHTML = cart.map((item) => {
             total += item.price * item.qty;
-            return `<div class="item-row">
-                <b>${item.name} (x${item.qty})</b>
-                <span>${(item.price * item.qty).toLocaleString()}đ</span>
-            </div>`;
+            return `<div class="item-row"><b>${item.name} (x${item.qty})</b><span>${(item.price * item.qty).toLocaleString()}đ</span></div>`;
         }).join('');
         document.getElementById("bill-total").innerText = total.toLocaleString() + " ₫";
-    }
-
-    async function saveToCloud() {
-        const name = document.getElementById("in-name").value;
-        const price = document.getElementById("in-price").value;
-        if(!name || !price) { alert("Vui lòng nhập đủ tên và giá!"); return; }
-        try {
-            document.getElementById("status-text").innerText = "Đang lưu...";
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] }) });
-            location.reload(); 
-        } catch (e) { alert("Lỗi khi lưu sản phẩm mới!"); }
-    }
-
-    function cancelNew() {
-        document.getElementById("new-product-area").style.display = "none";
-        scanLock = false;
     }
 
     async function processCheckout() {
         if (cart.length === 0) return;
         const totalVal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
         const today = new Date().toLocaleDateString('vi-VN');
-        
         try {
-            document.getElementById("status-text").innerText = "Đang lưu doanh thu...";
-            await fetch(API_URL, { 
-                method: 'POST', 
-                body: JSON.stringify({ type: "history", time: today, total: Number(totalVal) }) 
-            });
-            alert("Đã xong! Doanh thu đã được lưu: " + totalVal.toLocaleString() + "đ");
+            document.getElementById("status-text").innerText = "Đang lưu...";
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ type: "history", time: today, total: Number(totalVal) }) });
+            alert("Đã lưu doanh thu: " + totalVal.toLocaleString() + "đ");
             cart = []; updateUI(); scanLock = false;
             document.getElementById("status-text").innerText = "Đã đồng bộ";
-        } catch (e) { alert("Lỗi khi gửi dữ liệu doanh thu!"); }
+        } catch (e) { alert("Lỗi gửi dữ liệu!"); }
     }
 
     function viewHistory() {
-        // Mở link Google Sheets Trang tính 3
-        window.open(SHEET_LINK, '_blank');
+        window.open(SHEET_URL, '_blank');
+    }
+
+    async function saveToCloud() {
+        const name = document.getElementById("in-name").value;
+        const price = document.getElementById("in-price").value;
+        if(!name || !price) return;
+        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] }) });
+        location.reload();
     }
 
     window.onload = loadData;

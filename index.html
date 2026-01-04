@@ -10,23 +10,17 @@
         .rainbow-text { font-weight: 900; background-image: linear-gradient(to left, violet, indigo, blue, green, orange, red); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .header { background: white; padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         #status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ff9500; display: inline-block; margin-right: 5px; }
-        
         #camera-box { width: 100%; height: 180px; background: #000; border-radius: 20px; overflow: hidden; border: 3px solid #007aff; margin-top: 10px; position: relative; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        
         .card { background: white; padding: 15px; border-radius: 15px; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .btn { width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 8px; }
         .btn-blue { background: #1a73e8; color: white; }
         .btn-purple { background: #5856d6; color: white; }
         .btn-black { background: #333; color: white; }
-
-        /* PHẦN CHỈNH GIỎ HÀNG TO 150% VÀ NÚT BẤM */
         .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; font-size: 24px; } 
         .qty-controls { display: flex; align-items: center; gap: 15px; }
         .btn-qty { width: 45px; height: 45px; border-radius: 10px; border: 1px solid #007aff; background: #fff; font-size: 26px; font-weight: bold; color: #007aff; display: flex; justify-content: center; align-items: center; }
-
         .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 100; }
-        
         #bill-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .bill-header { text-align: center; margin-bottom: 20px; }
         .bill-title { font-size: 24px; font-weight: bold; margin: 0; }
@@ -43,21 +37,17 @@
         <h2 class="rainbow-text" style="margin:0;">TẠP HOÁ NGẠI HƯỜNG</h2>
         <div style="display:flex; align-items:center; font-size:12px;"><span id="status-dot"></span><span id="status-text">Đang nối...</span></div>
     </div>
-
     <div id="camera-box"><video id="video" playsinline></video></div>
-
     <div id="new-product-area" class="card" style="display:none; border: 2px solid #fbc02d;">
         <b>MÓN MỚI CHƯA CÓ:</b>
         <input id="in-name" style="width:100%; padding:12px; margin:5px 0; border-radius:8px; border:1px solid #ddd;" type="text" placeholder="Tên hàng">
         <input id="in-price" style="width:100%; padding:12px; margin:5px 0; border-radius:8px; border:1px solid #ddd;" type="number" placeholder="Giá bán">
         <button class="btn" style="background:var(--success); color:white" onclick="saveToCloud()">LƯU VÀO HỆ THỐNG</button>
     </div>
-
     <div class="card">
         <b style="color:#555">GIỎ HÀNG:</b>
         <div id="cart-list" style="margin-top:10px;"><p style="text-align:center; color:#999; font-size: 20px;">Chưa có hàng</p></div>
     </div>
-
     <div id="bill-overlay">
         <div class="bill-header">
             <p class="bill-title">TẠP HOÁ NGẠI HƯỜNG</p>
@@ -73,7 +63,6 @@
         <button class="btn btn-black" onclick="window.print()">🖨️ IN HÓA ĐƠN</button>
         <button class="btn btn-blue" onclick="closeBill()">XONG - TIẾP TỤC QUÉT</button>
     </div>
-
     <div class="footer">
         <div style="display:flex; justify-content:space-between; font-size:24px; font-weight:bold; color:var(--danger); margin-bottom:10px;">
             <span>TỔNG CỘNG:</span><span id="bill-total">0 ₫</span>
@@ -99,7 +88,18 @@
     }
 
     let globalProds = JSON.parse(localStorage.getItem('huong_ngai_cache') || "{}"), cart = [], scanLock = false;
-    const hints = new Map(); hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.UPC_A]);
+
+    // --- NÂNG CẤP QUÉT MÃ CONG/NGƯỢC/NHỎ ---
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.EAN_13, 
+        ZXing.BarcodeFormat.EAN_8, 
+        ZXing.BarcodeFormat.CODE_128, 
+        ZXing.BarcodeFormat.UPC_A
+    ]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); // Quét cực kỹ cho mã mờ/nhỏ
+    hints.set(ZXing.DecodeHintType.ASSUME_GS1, true); 
+
     const codeReader = new ZXing.BrowserBarcodeReader(hints);
 
     async function loadData() {
@@ -112,7 +112,15 @@
     }
 
     function startScan() {
-        const constraints = { video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } } };
+        // Tối ưu độ phân giải để cân bằng giữa tốc độ và độ nét khi soi mã nhỏ
+        const constraints = { 
+            video: { 
+                facingMode: "environment", 
+                width: { ideal: 1280 }, // Tăng nhẹ độ nét để đọc mã nhỏ tốt hơn
+                height: { ideal: 720 },
+                focusMode: "continuous"
+            } 
+        };
         codeReader.decodeFromConstraints(constraints, 'video', (result) => {
             if (result && !scanLock) {
                 const code = result.text.trim(); scanLock = true; playBeep();
@@ -128,7 +136,6 @@
         updateUI();
     }
 
-    // HÀM TĂNG GIẢM SỐ LƯỢNG
     function changeQty(index, delta) {
         cart[index].qty += delta;
         if (cart[index].qty <= 0) cart.splice(index, 1);

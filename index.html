@@ -9,7 +9,7 @@
   :root { --primary: #007aff; --success: #34c759; --danger: #ff3b30; --bg: #f2f2f7; }
   body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; overflow-x: hidden; }
   
-  /* Header & Status */
+  /* Tiêu đề và Trạng thái */
   .header { text-align: center; background: white; padding: 10px; border-radius: 12px; margin-bottom: 8px; position: relative; }
   .sync-status { position: absolute; top: 5px; right: 10px; font-size: 10px; font-weight: bold; }
 
@@ -19,34 +19,42 @@
 
   .card { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 8px; }
   
-  /* Input hàng mới */
+  /* Khu vực nhập hàng mới */
   #new-product-area { display: none; background: #fff9c4; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 2px solid #fbc02d; }
-  input { width: 100%; font-size: 18px; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+  input { width: 100%; font-size: 18px; padding: 12px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
   
-  /* Danh sách hàng */
-  .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-  .item-info { flex: 1; }
+  /* Danh sách giỏ hàng */
+  .item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
   .item-name { font-size: 18px; font-weight: bold; display: block; }
-  .qty-control { display: flex; align-items: center; gap: 12px; margin: 0 10px; }
-  .btn-qty { width: 42px; height: 42px; background: #eee; border: none; border-radius: 10px; font-size: 24px; font-weight: bold; color: var(--primary); }
-  .qty-num { font-size: 28px; font-weight: 800; min-width: 30px; text-align: center; }
+  .qty-control { display: flex; align-items: center; gap: 12px; }
+  .btn-qty { width: 40px; height: 40px; background: #eee; border: none; border-radius: 10px; font-size: 20px; color: var(--primary); }
+  .qty-num { font-size: 24px; font-weight: bold; min-width: 25px; text-align: center; }
 
-  /* Nút chức năng ĐƯA LÊN CAO */
-  .footer-bar { position: fixed; bottom: 30px; left: 0; right: 0; background: white; padding: 15px; border-top: 1px solid #ddd; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
-  .total-flex { display: flex; justify-content: space-between; font-size: 22px; font-weight: 900; color: var(--danger); margin-bottom: 10px; }
-  .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; width: 100%; }
-  .btn-history { background: #5856d6; margin-top: 8px; }
+  /* THANH ĐIỀU KHIỂN - ĐƯA LÊN CAO THEO YÊU CẦU */
+  .footer-bar { 
+    position: fixed; 
+    bottom: 100px; /* Cách đáy 100px để không vướng iPhone */
+    left: 10px; 
+    right: 10px; 
+    background: white; 
+    padding: 15px; 
+    border-radius: 20px; 
+    box-shadow: 0 -10px 25px rgba(0,0,0,0.15); 
+    z-index: 1000;
+  }
+  .total-flex { display: flex; justify-content: space-between; font-size: 22px; font-weight: 900; color: var(--danger); margin-bottom: 12px; }
+  .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; width: 100%; margin-bottom: 8px; }
+  .btn-history { background: #5856d6; }
 
-  /* Modals */
+  /* Giao diện Hóa đơn & Lịch sử */
   .full-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
   .inv-paper { max-width: 350px; margin: 0 auto; color: #000; font-family: monospace; }
   .inv-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; }
   .inv-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  .inv-table th { border-bottom: 1px solid #000; font-size: 14px; padding: 5px 0; }
-  .inv-table td { padding: 8px 0; font-size: 15px; }
+  .inv-table th { border-bottom: 1px solid #000; padding: 5px 0; }
   .inv-total { border-top: 2px double #000; margin-top: 10px; padding-top: 8px; font-size: 22px; font-weight: bold; text-align: right; }
   
-  .history-item { border-bottom: 1px solid #ddd; padding: 10px 0; display: flex; justify-content: space-between; }
+  .history-item { border-bottom: 1px solid #ddd; padding: 12px 0; display: flex; justify-content: space-between; }
 
   @media print { .no-print { display: none !important; } .full-modal { position: relative; padding: 0; } }
 </style>
@@ -58,33 +66,40 @@
     <span id="cloud-status" class="sync-status">● Đang kết nối...</span>
     <h1 style="margin:0; font-size:20px; color:#d70119;">TẠP HOÁ NGẠI HƯỜNG</h1>
   </div>
+  
   <div id="camera-box"><video id="video" playsinline></video></div>
+  
   <div class="card">
     <div id="new-product-area">
-      <b style="color:red">SẢN PHẨM MỚI:</b>
-      <input id="in-name" type="text" placeholder="Tên hàng..." />
-      <input id="in-price" type="number" placeholder="Giá..." />
+      <b style="color:red">SẢN PHẨM MỚI / CẬP NHẬT:</b>
+      <input id="in-name" type="text" placeholder="Tên sản phẩm..." />
+      <input id="in-price" type="number" placeholder="Giá bán..." />
       <button class="btn-main" style="background:var(--success)" onclick="saveToCloud()">LƯU HỆ THỐNG</button>
-      <button onclick="cancelNew()" style="width:100%; background:none; border:none; color:gray; margin-top:10px;">Hủy</button>
+      <button onclick="cancelNew()" style="width:100%; background:none; border:none; color:gray; margin-top:10px;">Hủy bỏ</button>
     </div>
     <div id="cart-list"></div>
   </div>
-  <div style="height: 180px;"></div>
+
+  <div style="height: 250px;"></div>
+
   <div class="footer-bar">
-    <div class="total-flex"><span>TỔNG CỘNG:</span><span id="bill-total">0 ₫</span></div>
+    <div class="total-flex"><span>TỔNG:</span><span id="bill-total">0 ₫</span></div>
     <button class="btn-main" onclick="showInvoice()">XONG KHÁCH - IN ĐƠN</button>
-    <button class="btn-main btn-history" onclick="showHistory()">XEM LỊCH SỬ BÁN HÀNG</button>
+    <button class="btn-main btn-history" onclick="showHistory()">XEM DOANH THU</button>
   </div>
 </div>
 
 <div id="invoice-modal" class="full-modal">
   <div class="inv-paper">
-    <div class="inv-header"><h2 style="margin:0">TẠP HOÁ NGẠI HƯỜNG</h2><p id="inv-time"></p></div>
-    <table class="inv-table"><thead><tr><th style="text-align:left;">Món</th><th style="text-align:center;">SL</th><th style="text-align:right;">Tiền</th></tr></thead><tbody id="inv-body"></tbody></table>
+    <div class="inv-header"><h2>TẠP HOÁ NGẠI HƯỜNG</h2><p id="inv-time"></p></div>
+    <table class="inv-table">
+        <thead><tr><th align="left">Món</th><th align="center">SL</th><th align="right">Tiền</th></tr></thead>
+        <tbody id="inv-body"></tbody>
+    </table>
     <div class="inv-total">TỔNG: <span id="inv-total">0</span> ₫</div>
-    <div class="no-print" style="margin-top:25px;">
-      <button class="btn-main" onclick="printAndSave()" style="background:#444; margin-bottom:10px;">🖨️ IN HÓA ĐƠN</button>
-      <button class="btn-main" onclick="closeAndReset()">TIẾP TỤC QUÉT</button>
+    <div class="no-print" style="margin-top:30px;">
+      <button class="btn-main" onclick="printAndSaveCloud()" style="background:#444;">🖨️ IN & LƯU DOANH THU</button>
+      <button class="btn-main" onclick="closeAndReset()" style="background:var(--primary); margin-top:10px;">TIẾP TỤC QUÉT</button>
     </div>
   </div>
 </div>
@@ -92,13 +107,11 @@
 <div id="history-modal" class="full-modal">
   <h2 style="text-align:center">LỊCH SỬ BÁN HÀNG</h2>
   <div id="history-content"></div>
-  <div style="margin-top:20px">
-    <button class="btn-main" onclick="document.getElementById('history-modal').style.display='none'">QUAY LẠI</button>
-    <button class="btn-main btn-history" style="background:#ff3b30; margin-top:10px;" onclick="clearHistory()">XÓA TẤT CẢ LỊCH SỬ</button>
-  </div>
+  <button class="btn-main" style="margin-top:20px" onclick="document.getElementById('history-modal').style.display='none'">QUAY LẠI</button>
 </div>
 
 <script>
+// LINK API ĐÃ SỬA LỖI EXẾC -> EXEC
 const API_URL = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec"; 
 
 let globalProds = {};
@@ -111,7 +124,7 @@ function playBeep() {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.type = "sine"; osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
     gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
     osc.start(); osc.stop(audioCtx.currentTime + 0.1);
 }
@@ -124,7 +137,10 @@ async function loadCloudData() {
         data.forEach(item => { globalProds[item.Barcode] = { name: item.Name, price: parseInt(item.Price) }; });
         document.getElementById("cloud-status").innerText = "● Đã đồng bộ (" + data.length + " món)";
         document.getElementById("cloud-status").style.color = "green";
-    } catch (e) { document.getElementById("cloud-status").innerText = "● Ngoại tuyến"; document.getElementById("cloud-status").style.color = "red"; }
+    } catch (e) { 
+        document.getElementById("cloud-status").innerText = "● Ngoại tuyến"; 
+        document.getElementById("cloud-status").style.color = "red"; 
+    }
 }
 
 window.addEventListener('load', () => { loadCloudData(); startCamera(); });
@@ -136,11 +152,11 @@ function startCamera() {
             playBeep();
             scanLock = true;
             if (globalProds[code]) {
-                const item = cart.find(i => i.barcode === code);
-                if (item) item.qty += 1;
+                const existing = cart.find(i => i.barcode === code);
+                if (existing) existing.qty += 1;
                 else cart.push({ barcode: code, name: globalProds[code].name, price: globalProds[code].price, qty: 1 });
                 updateUI();
-                setTimeout(() => { scanLock = false; }, 1200);
+                setTimeout(() => { scanLock = false; }, 1000);
             } else {
                 window.activeBarcode = code;
                 document.getElementById("new-product-area").style.display = "block";
@@ -154,18 +170,21 @@ async function saveToCloud() {
     const name = document.getElementById("in-name").value;
     const price = document.getElementById("in-price").value;
     if(!name || !price) return;
+    
+    document.getElementById("cloud-status").innerText = "● Đang lưu...";
     try {
-        const method = globalProds[window.activeBarcode] ? 'PATCH' : 'POST';
-        const url = method === 'PATCH' ? `${API_URL}/Barcode/${window.activeBarcode}` : API_URL;
-        await fetch(url, {
-            method: method,
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(method === 'PATCH' ? { Name: name, Price: price } : { data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] })
+        await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] })
         });
         globalProds[window.activeBarcode] = { name, price: parseInt(price) };
-        if (!cart.find(i => i.barcode === window.activeBarcode)) { cart.push({ barcode: window.activeBarcode, name, price: parseInt(price), qty: 1 }); }
-        updateUI(); cancelNew(); loadCloudData();
-    } catch (e) { alert("Lỗi kết nối Cloud!"); }
+        if (!cart.find(i => i.barcode === window.activeBarcode)) {
+            cart.push({ barcode: window.activeBarcode, name, price: parseInt(price), qty: 1 });
+        }
+        updateUI();
+        cancelNew();
+        loadCloudData();
+    } catch (e) { alert("Lỗi lưu Cloud!"); }
 }
 
 function cancelNew() { document.getElementById("new-product-area").style.display = "none"; scanLock = false; }
@@ -176,7 +195,15 @@ function updateUI() {
     let total = 0;
     list.innerHTML = cart.map((item, i) => {
         const sub = item.price * item.qty; total += sub;
-        return `<div class="item-row"><div class="item-info"><span class="item-name">${item.name}</span><span>${item.price.toLocaleString()}₫</span></div><div class="qty-control"><button class="btn-qty" onclick="changeQty(${i}, -1)">-</button><span class="qty-num">${item.qty}</span><button class="btn-qty" onclick="changeQty(${i}, 1)">+</button></div><div style="font-weight:bold; width:80px; text-align:right">${sub.toLocaleString()}₫</div></div>`;
+        return `<div class="item-row">
+            <div style="flex:1"><span class="item-name">${item.name}</span><span>${item.price.toLocaleString()}đ</span></div>
+            <div class="qty-control">
+                <button class="btn-qty" onclick="changeQty(${i}, -1)">-</button>
+                <span class="qty-num">${item.qty}</span>
+                <button class="btn-qty" onclick="changeQty(${i}, 1)">+</button>
+            </div>
+            <div style="width:80px; text-align:right; font-weight:bold;">${sub.toLocaleString()}đ</div>
+        </div>`;
     }).join('');
     document.getElementById("bill-total").innerText = total.toLocaleString() + " ₫";
 }
@@ -184,39 +211,50 @@ function updateUI() {
 function showInvoice() {
     if (cart.length === 0) return;
     scanLock = true;
-    document.getElementById("inv-time").innerText = new Date().toLocaleString('vi-VN');
+    const now = new Date();
+    document.getElementById("inv-time").innerText = now.toLocaleString('vi-VN');
     let total = 0;
     document.getElementById("inv-body").innerHTML = cart.map(item => {
         const sub = item.price * item.qty; total += sub;
-        return `<tr><td>${item.name}</td><td style="text-align:center">${item.qty}</td><td style="text-align:right">${sub.toLocaleString()}</td></tr>`;
+        return `<tr><td>${item.name}</td><td align="center">${item.qty}</td><td align="right">${sub.toLocaleString()}</td></tr>`;
     }).join('');
     document.getElementById("inv-total").innerText = total.toLocaleString();
     document.getElementById("invoice-modal").style.display = "block";
 }
 
-function printAndSave() {
+async function printAndSaveCloud() {
     const total = document.getElementById("inv-total").innerText;
     const time = document.getElementById("inv-time").innerText;
+    
+    // Lưu vào bộ nhớ máy (để xem nhanh)
     let history = JSON.parse(localStorage.getItem('sale_history') || '[]');
     history.unshift({ time, total });
     localStorage.setItem('sale_history', JSON.stringify(history));
+
+    // Gửi doanh thu lên Google Sheet (Trang tính 2)
+    try {
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ type: "history", time: time, total: total })
+        });
+    } catch (e) {}
+
     window.print();
 }
 
 function showHistory() {
     const history = JSON.parse(localStorage.getItem('sale_history') || '[]');
-    let html = history.length ? "" : "<p style='text-align:center'>Chưa có giao dịch nào.</p>";
-    let dayTotal = 0;
+    let html = history.length ? "" : "<p align='center'>Chưa có dữ liệu hôm nay.</p>";
+    let daySum = 0;
     history.forEach(item => {
-        html += `<div class="history-item"><span>${item.time}</span><b style="color:var(--danger)">${item.total} ₫</b></div>`;
-        dayTotal += parseInt(item.total.replace(/,/g, ''));
+        html += `<div class="history-item"><span>${item.time}</span><b>${item.total} ₫</b></div>`;
+        daySum += parseInt(item.total.replace(/\./g, ''));
     });
-    if (history.length) html = `<div class="card" style="background:#e5e5ea; text-align:center"><h3>TỔNG DOANH THU: ${dayTotal.toLocaleString()} ₫</h3></div>` + html;
-    document.getElementById("history-content").innerHTML = html;
+    document.getElementById("history-content").innerHTML = 
+        `<div class="card" style="background:#f2f2f7; text-align:center"><h3>TỔNG DOANH THU: ${daySum.toLocaleString()} ₫</h3></div>` + html;
     document.getElementById("history-modal").style.display = "block";
 }
 
-function clearHistory() { if(confirm("Bạn có chắc muốn xóa sạch lịch sử?")) { localStorage.removeItem('sale_history'); showHistory(); } }
 function closeAndReset() { cart = []; updateUI(); document.getElementById("invoice-modal").style.display = "none"; scanLock = false; }
 </script>
 </body>

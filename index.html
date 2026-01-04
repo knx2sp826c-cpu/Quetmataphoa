@@ -19,7 +19,6 @@
         .btn-black { background: #333; color: white; }
         .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 100; }
         
-        /* GIAO DIỆN HÓA ĐƠN GIỐNG MẪU ẢNH */
         #bill-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .bill-header { text-align: center; margin-bottom: 20px; }
         .bill-title { font-size: 24px; font-weight: bold; margin: 0; }
@@ -60,7 +59,6 @@
         </table>
         <div class="bill-divider" style="margin-bottom:0"></div>
         <div class="total-row">TỔNG: <span id="bill-total-final" style="margin-left:10px">0 ₫</span></div>
-        
         <button class="btn btn-black" onclick="window.print()">🖨️ IN HÓA ĐƠN</button>
         <button class="btn btn-blue" onclick="closeBill()">XONG - TIẾP TỤC QUÉT</button>
     </div>
@@ -77,8 +75,33 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec";
     const SHEET_URL = "https://docs.google.com/spreadsheets/d/1emE2-PGMZU8epGKC8FXf1FANXIRR09lqY6dPTN8ieexhDPolt9vWzT7-/edit#gid=1114532930";
     
+    // Tạo tiếng bíp kỹ thuật số
+    function playBeep() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.1);
+        } catch(e) { console.log("Beep error:", e); }
+    }
+
     let globalProds = JSON.parse(localStorage.getItem('huong_ngai_cache') || "{}"), cart = [], scanLock = false;
-    const hints = new Map(); hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.CODE_128]);
+    
+    // TỐI ƯU QUÉT: Chỉ định chính xác định dạng mã vạch phổ biến
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.EAN_13, 
+        ZXing.BarcodeFormat.EAN_8, 
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.UPC_A
+    ]);
+    // Tăng tốc bằng cách tắt quét QR và các định dạng không cần thiết
     const codeReader = new ZXing.BrowserBarcodeReader(hints);
 
     async function loadData() {
@@ -91,11 +114,23 @@
     }
 
     function startScan() {
-        codeReader.decodeFromVideoDevice(null, 'video', (result) => {
+        // Cấu hình video cực nhẹ để xử lý nhanh (640x480)
+        const constraints = { video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } } };
+        
+        codeReader.decodeFromConstraints(constraints, 'video', (result, err) => {
             if (result && !scanLock) {
-                const code = result.text.trim(); scanLock = true;
-                if (globalProds[code]) { addItemToCart(code); setTimeout(() => scanLock = false, 800); }
-                else { window.activeBarcode = code; document.getElementById("new-product-area").style.display = "block"; }
+                const code = result.text.trim();
+                scanLock = true;
+                playBeep(); // Phát tiếng bíp ngay khi nhận diện
+
+                if (globalProds[code]) {
+                    addItemToCart(code);
+                    // Giảm thời gian chờ giữa 2 lần quét xuống 600ms (nhanh hơn bản cũ)
+                    setTimeout(() => scanLock = false, 600);
+                } else {
+                    window.activeBarcode = code;
+                    document.getElementById("new-product-area").style.display = "block";
+                }
             }
         });
     }
@@ -125,15 +160,12 @@
         const now = new Date();
         const timeStr = now.toLocaleTimeString('vi-VN') + " " + now.toLocaleDateString('vi-VN');
         const totalVal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        
         document.getElementById("bill-time-val").innerText = timeStr;
         document.getElementById("bill-items-body").innerHTML = cart.map(item => 
             `<tr><td>${item.name}</td><td align="center">${item.qty}</td><td align="right">${(item.price * item.qty).toLocaleString()}</td></tr>`
         ).join('');
         document.getElementById("bill-total-final").innerText = totalVal.toLocaleString() + " đ";
         document.getElementById("bill-overlay").style.display = "block";
-
-        // Gửi doanh thu lên Cloud ngầm
         fetch(API_URL, { method: 'POST', body: JSON.stringify({ type: "history", time: timeStr, total: Number(totalVal) }) });
     }
 
@@ -147,7 +179,7 @@
         addItemToCart(window.activeBarcode);
         document.getElementById("new-product-area").style.display = "none";
         fetch(API_URL, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeBarcode, Name: n, Price: p }] }) });
-        setTimeout(() => scanLock = false, 800);
+        setTimeout(() => scanLock = false, 600);
     }
 
     window.onload = () => { loadData(); startScan(); };

@@ -3,59 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tạp Hoá Ngại Hường Pro</title>
+    <title>Hường Ngại App</title>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
-        :root { --primary: #007aff; --success: #34c759; --danger: #ff3b30; --bg: #f2f2f7; }
+        :root { --primary: #d70119; --success: #34c759; --danger: #ff3b30; --bg: #f2f2f7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 180px; }
         .header { background: white; padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        #status-dot { width: 12px; height: 12px; border-radius: 50%; background: #ff3b30; display: inline-block; margin-right: 5px; }
+        #status-dot { width: 12px; height: 12px; border-radius: 50%; background: #34c759; display: inline-block; margin-right: 5px; }
         #camera-box { width: 100%; height: 180px; background: #000; border-radius: 20px; overflow: hidden; border: 3px solid var(--primary); margin-top: 10px; }
         video { width: 100%; height: 100%; object-fit: cover; }
         .card { background: white; padding: 15px; border-radius: 15px; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         input { width: 100%; font-size: 16px; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
         .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-blue { background: var(--primary); color: white; margin-bottom: 8px; }
+        .btn-blue { background: #007aff; color: white; margin-bottom: 8px; }
         .btn-purple { background: #5856d6; color: white; }
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
         .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2 style="margin:0; color:#d70119;">NGẠI HƯỜNG PRO</h2>
+        <h2 style="margin:0; color:var(--primary);">HƯỜNG NGẠI APP</h2>
         <div style="display:flex; align-items:center; font-size:12px; font-weight:bold;">
-            <span id="status-dot"></span> <span id="status-text">Đang kết nối...</span>
+            <span id="status-dot"></span> <span id="status-text">Đã đồng bộ</span>
         </div>
     </div>
 
     <div id="camera-box"><video id="video"></video></div>
 
     <div id="new-product-area" class="card" style="display:none; border: 2px solid #fbc02d;">
-        <b style="color:#fbc02d">MÓN MỚI CHƯA CÓ:</b>
-        <input id="in-name" type="text" placeholder="Tên hàng">
-        <input id="in-price" type="number" placeholder="Giá bán">
-        <button class="btn" style="background:var(--success); color:white" onclick="saveToCloud()">LƯU VÀO HỆ THỐNG</button>
+        <b style="color:#fbc02d">MÓN MỚI CHƯA CÓ TRÊN KỆ:</b>
+        <input id="in-name" type="text" placeholder="Tên hàng (vd: Giấy ăn)">
+        <input id="in-price" type="number" placeholder="Giá bán (vd: 15000)">
+        <button id="btn-save-new" class="btn" style="background:var(--success); color:white" onclick="saveToCloud()">LƯU VÀO HỆ THỐNG</button>
+        <button class="btn" style="background:#eee; margin-top:5px;" onclick="cancelNew()">HỦY</button>
     </div>
 
     <div class="card">
-        <b style="color:#555">GIỎ HÀNG:</b>
-        <div id="cart-list" style="margin-top:10px;"><p style="color:#999; text-align:center;">Đang chờ quét mã...</p></div>
+        <b style="color:#555">DANH SÁCH ĐANG QUÉT:</b>
+        <div id="cart-list" style="margin-top:10px;">
+            <p style="color:#999; text-align:center;">Đang chờ quét mã...</p>
+        </div>
     </div>
 
     <div class="footer">
         <div style="display:flex; justify-content:space-between; font-size:22px; font-weight:bold; color:var(--danger); margin-bottom:15px;">
-            <span>TỔNG:</span><span id="bill-total">0 ₫</span>
+            <span>TỔNG CỘNG:</span><span id="bill-total">0 ₫</span>
         </div>
         <button class="btn btn-blue" onclick="processCheckout()">XONG KHÁCH - LƯU DOANH THU</button>
         <button class="btn btn-purple" onclick="viewHistory()">XEM LỊCH SỬ BÁN HÀNG</button>
     </div>
 
 <script>
-    // LINK MỚI CỦA BẠN
     const API_URL = "https://script.google.com/macros/s/AKfycbyvELWXInZ2G3G5iBrM9HaiU10L2q6hlTNT3u8_xropYBW80VbENHObpSavUB4WOGVz/exec";
-    
-    // LINK FILE GOOGLE SHEETS ĐỂ XEM LỊCH SỬ
     const SHEET_URL = "https://docs.google.com/spreadsheets/d/1emE2-PGMZU8epGKC8FXf1FANXIRR09lqY6dPTN8ieexhDPolt9vWzT7-/edit#gid=1114532930";
 
     let globalProds = {}, cart = [], scanLock = false;
@@ -65,11 +65,12 @@
         try {
             const res = await fetch(API_URL);
             const data = await res.json();
+            globalProds = {};
             data.forEach(i => globalProds[i.Barcode] = { name: i.Name, price: parseInt(i.Price) });
             document.getElementById("status-dot").style.background = "#34c759";
             document.getElementById("status-text").innerText = "Đã đồng bộ";
-            startScan();
         } catch (e) { 
+            document.getElementById("status-dot").style.background = "#ff3b30";
             document.getElementById("status-text").innerText = "Lỗi kết nối Cloud";
         }
     }
@@ -118,25 +119,56 @@
         try {
             document.getElementById("status-text").innerText = "Đang lưu...";
             await fetch(API_URL, { method: 'POST', body: JSON.stringify({ type: "history", time: today, total: Number(totalVal) }) });
-            alert("Đã lưu doanh thu: " + totalVal.toLocaleString() + "đ");
+            alert("Đã xong! Doanh thu " + totalVal.toLocaleString() + "đ đã được ghi sổ.");
             cart = []; updateUI(); scanLock = false;
             document.getElementById("status-text").innerText = "Đã đồng bộ";
-        } catch (e) { alert("Lỗi gửi dữ liệu!"); }
+        } catch (e) { alert("Lỗi khi gửi dữ liệu doanh thu!"); }
+    }
+
+    async function saveToCloud() {
+        const name = document.getElementById("in-name").value;
+        const price = document.getElementById("in-price").value;
+        const btn = document.getElementById("btn-save-new");
+        if(!name || !price) { alert("Vui lòng nhập đủ tên và giá!"); return; }
+        
+        btn.innerText = "Đang gửi...";
+        btn.disabled = true;
+
+        try {
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] }) });
+            
+            // Cập nhật bộ nhớ tại chỗ, KHÔNG reload trang
+            globalProds[window.activeBarcode] = { name: name, price: parseInt(price) };
+            addItemToCart(window.activeBarcode); // Tự động thêm vào giỏ hàng vừa quét
+            
+            document.getElementById("new-product-area").style.display = "none";
+            document.getElementById("in-name").value = "";
+            document.getElementById("in-price").value = "";
+            
+            alert("Thành công! Đã thêm " + name + " vào giỏ hàng.");
+            loadData(); // Cập nhật ngầm danh sách
+        } catch (e) {
+            alert("Lỗi lưu món mới!");
+        } finally {
+            btn.innerText = "LƯU VÀO HỆ THỐNG";
+            btn.disabled = false;
+            scanLock = false;
+        }
+    }
+
+    function cancelNew() {
+        document.getElementById("new-product-area").style.display = "none";
+        scanLock = false;
     }
 
     function viewHistory() {
         window.open(SHEET_URL, '_blank');
     }
 
-    async function saveToCloud() {
-        const name = document.getElementById("in-name").value;
-        const price = document.getElementById("in-price").value;
-        if(!name || !price) return;
-        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: window.activeBarcode, Name: name, Price: price }] }) });
-        location.reload();
-    }
-
-    window.onload = loadData;
+    window.onload = async () => {
+        await loadData();
+        startScan();
+    };
 </script>
 </body>
 </html>

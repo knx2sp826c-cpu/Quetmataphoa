@@ -3,199 +3,147 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Smart Pos - Quản Lý Bán Hàng</title>
+<title>Tạp Hoá Ngại Hường</title>
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 <style>
-  :root {
-    --primary: #2563eb;
-    --secondary: #64748b;
-    --success: #22c55e;
-    --danger: #ef4444;
-    --warning: #f59e0b;
-    --bg: #f8fafc;
-    --card: #ffffff;
-    --text: #1e293b;
-  }
-
-  body { 
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-    background-color: var(--bg); 
-    color: var(--text);
-    margin: 0; padding: 10px;
-    line-height: 1.5;
-  }
-
-  .header { text-align: center; padding: 15px 0; }
-  .header h2 { margin: 0; color: var(--primary); font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
+  :root { --primary: #007aff; --success: #34c759; --danger: #ff3b30; --bg: #f2f2f7; }
+  body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 100px; }
   
-  .card { 
-    background: var(--card); 
-    padding: 18px; 
-    border-radius: 16px; 
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); 
-    margin-bottom: 15px;
-  }
+  .header { text-align: center; background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  .header h1 { margin: 0; color: #d70119; font-size: 26px; }
 
-  label { font-size: 13px; font-weight: 600; color: var(--secondary); margin-bottom: 4px; display: block; }
+  /* Khu vực Camera luôn hiện */
+  #camera-container { width: 100%; height: 200px; background: #000; border-radius: 15px; overflow: hidden; position: relative; margin-bottom: 10px; border: 3px solid var(--primary); }
+  video { width: 100%; height: 100%; object-fit: cover; }
+  .scan-tip { position: absolute; bottom: 5px; width: 100%; text-align: center; color: white; background: rgba(0,0,0,0.5); font-size: 12px; }
+
+  .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; }
   
-  input { 
-    width: 100%; font-size: 16px; padding: 12px; margin-bottom: 12px; 
-    border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box;
-    transition: all 0.2s; background: #fdfdfd;
-  }
-  input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+  /* Ô nhập dữ liệu to rõ */
+  input { width: 100%; font-size: 18px; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
+  .btn-add { background: var(--success); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; font-size: 18px; margin-top: 5px; }
 
-  .button-group { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  /* Giỏ hàng và Số lượng TO */
+  .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 2px solid #f2f2f7; }
+  .item-name { flex: 1; font-size: 20px; font-weight: bold; }
   
-  button { 
-    width: 100%; font-size: 15px; padding: 14px; border: none; border-radius: 12px; 
-    font-weight: 700; cursor: pointer; transition: opacity 0.2s;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  button:active { opacity: 0.8; transform: scale(0.98); }
+  .qty-control { display: flex; align-items: center; gap: 15px; }
+  .btn-qty { width: 50px; height: 50px; background: #e5e5ea; border: none; border-radius: 12px; font-size: 30px; font-weight: bold; color: var(--primary); }
+  .qty-number { font-size: 35px; font-weight: 900; min-width: 40px; text-align: center; color: #000; }
 
-  .btn-scan { background: var(--primary); color: white; }
-  .btn-add { background: var(--success); color: white; }
-  .btn-finish { background: var(--warning); color: white; margin-top: 15px; font-size: 17px; }
+  .total-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-top: 2px solid #ddd; display: flex; flex-direction: column; gap: 10px; z-index: 100; }
+  .total-row { display: flex; justify-content: space-between; font-size: 24px; font-weight: 900; color: var(--danger); }
+  .btn-pay { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 20px; font-weight: bold; }
 
-  /* Giỏ hàng */
-  .cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
-  .item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-  .item-info b { font-size: 16px; display: block; }
-  .item-info small { color: var(--secondary); font-size: 13px; }
-
-  .qty-box { display: flex; align-items: center; gap: 12px; background: #f1f5f9; padding: 4px 10px; border-radius: 20px; }
-  .btn-qty { width: 28px; height: 28px; background: white; border-radius: 50%; border: 1px solid #e2e8f0; font-size: 18px; padding: 0; color: var(--primary); }
-
-  .total-section { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #e2e8f0; }
-  .total-row { display: flex; justify-content: space-between; align-items: center; font-size: 22px; font-weight: 800; color: var(--danger); }
-
-  video { width: 100%; border-radius: 14px; display: none; margin-bottom: 15px; border: 3px solid var(--primary); }
-
-  /* Lịch sử */
-  .history-list { max-height: 200px; overflow-y: auto; }
-  .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; font-size: 14px; }
+  /* Vùng nhập sản phẩm mới (mặc định ẩn) */
+  #new-product-area { display: none; border-top: 2px dashed var(--primary); margin-top: 10px; padding-top: 10px; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h2>🚀 SMART POS</h2>
+  <h1>🏪 TẠP HOÁ NGẠI HƯỜNG</h1>
+</div>
+
+<div id="camera-container">
+  <video id="video" playsinline></video>
+  <div class="scan-tip">Đưa mã vạch vào khung hình để quét</div>
 </div>
 
 <div class="card">
-  <video id="v-camera" playsinline webkit-playsinline></video>
-  <button class="btn-scan" onclick="invokeScanner()">
-    <span>📷</span> QUÉT MÃ SẢN PHẨM
-  </button>
-  
-  <div style="margin-top: 15px;">
-    <label>TÊN SẢN PHẨM</label>
-    <input id="in-name" type="text" placeholder="Nhập tên hoặc quét mã..." />
-    
-    <div style="display: flex; gap: 10px;">
-      <div style="flex: 2;">
-        <label>GIÁ BÁN (₫)</label>
-        <input id="in-price" type="number" placeholder="0" />
-      </div>
-      <div style="flex: 1;">
-        <label>SỐ LƯỢNG</label>
-        <input id="in-qty" type="number" value="1" />
-      </div>
-    </div>
-  </div>
-  
-  <button class="btn-add" onclick="handleAddItem()">
-    <span>➕</span> THÊM VÀO GIỎ HÀNG
-  </button>
-</div>
-
-<div class="card">
-  <div class="cart-header">
-    <span style="font-weight: 800; font-size: 18px;">🛒 GIỎ HÀNG</span>
-    <span id="items-count" style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px;">0 món</span>
-  </div>
-  
-  <div id="display-list">
-    <div style="text-align: center; color: var(--secondary); padding: 20px;">Chưa có sản phẩm nào</div>
+  <div id="new-product-area">
+    <b style="color:var(--danger)">Mã mới chưa lưu! Nhập thông tin:</b>
+    <input id="in-name" type="text" placeholder="Tên hàng mới..." />
+    <input id="in-price" type="number" placeholder="Giá bán (₫)" />
+    <button class="btn-add" onclick="saveAndAddItem()">✔️ LƯU VÀ THÊM MÓN</button>
   </div>
 
-  <div class="total-section">
-    <div class="total-row">
-      <span>TỔNG CỘNG:</span>
-      <span id="display-total">0 ₫</span>
-    </div>
-    <button class="btn-finish" onclick="handleFinishBill()">
-      <span>💰</span> THANH TOÁN & IN ĐƠN
-    </button>
+  <div class="cart-title" style="font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 5px;">📦 GIỎ HÀNG ĐANG QUÉT:</div>
+  <div id="cart-list">
+    <p style="text-align: center; color: #999; padding: 20px;">Đang đợi quét mã...</p>
   </div>
 </div>
 
 <div class="card">
-  <div class="cart-header">
-    <span style="font-weight: 800; font-size: 16px;">📊 DOANH THU HÔM NAY</span>
+  <div style="font-weight: bold;">📊 DOANH THU HÔM NAY: <span id="day-total">0 ₫</span></div>
+</div>
+
+<div class="total-bar">
+  <div class="total-row">
+    <span>TỔNG:</span>
+    <span id="bill-total">0 ₫</span>
   </div>
-  <div id="display-history" class="history-list"></div>
+  <button class="btn-pay" onclick="finishBill()">✅ XONG KHÁCH - LƯU ĐƠN</button>
 </div>
 
 <script>
-// Logic giữ nguyên từ bản V3 ổn định nhất nhưng cập nhật UI render
-let globalProducts = JSON.parse(localStorage.getItem("myProducts") || "{}");
-let globalBills = JSON.parse(localStorage.getItem("myBills") || "{}");
+let globalProducts = JSON.parse(localStorage.getItem("ngaiHuongProducts") || "{}");
+let globalBills = JSON.parse(localStorage.getItem("ngaiHuongBills") || "{}");
 let currentBill = [];
-let lastScannedCode = null;
+let currentScannedCode = null;
 
-const dateStr = new Date().toLocaleDateString("vi-VN");
-if (!globalBills[dateStr]) globalBills[dateStr] = [];
+const codeReader = new ZXing.BrowserBarcodeReader();
+const dateKey = new Date().toLocaleDateString("vi-VN");
+if (!globalBills[dateKey]) globalBills[dateKey] = [];
 
-function invokeScanner() {
-  const v = document.getElementById("v-camera");
-  v.style.display = "block";
-  const codeReader = new ZXing.BrowserBarcodeReader();
-  codeReader.decodeFromVideoDevice(null, "v-camera", (result) => {
+// TỰ ĐỘNG BẬT CAMERA KHI VÀO APP
+window.addEventListener('load', () => {
+  startContinuousScan();
+  renderHistory();
+});
+
+function startContinuousScan() {
+  codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
     if (result) {
-      codeReader.reset();
-      v.style.display = "none";
-      lastScannedCode = result.text;
+      // Khi quét được mã
+      currentScannedCode = result.text;
+      playBeep(); // Phát tiếng kêu bíp (nếu muốn)
       
-      if (globalProducts[lastScannedCode]) {
-        document.getElementById("in-name").value = globalProducts[lastScannedCode].name;
-        document.getElementById("in-price").value = globalProducts[lastScannedCode].price;
+      if (globalProducts[currentScannedCode]) {
+        // Nếu là hàng cũ: Tự động thêm vào giỏ luôn
+        autoAddProduct(globalProducts[currentScannedCode]);
+        hideNewArea();
       } else {
-        document.getElementById("in-name").value = "";
-        document.getElementById("in-price").value = "";
-        alert("Mã vạch mới: " + lastScannedCode);
+        // Nếu là hàng mới: Hiện ô nhập liệu
+        showNewArea();
       }
     }
   });
 }
 
-function handleAddItem() {
-  const elName = document.getElementById("in-name");
-  const elPrice = document.getElementById("in-price");
-  const elQty = document.getElementById("in-qty");
-
-  const nameVal = elName.value.trim();
-  const priceVal = parseInt(elPrice.value);
-  const qtyVal = parseInt(elQty.value);
-
-  if (!nameVal || isNaN(priceVal) || qtyVal <= 0) {
-    alert("Vui lòng điền thông tin sản phẩm!");
-    return;
+function autoAddProduct(prod) {
+  const existing = currentBill.find(i => i.barcode === currentScannedCode);
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    currentBill.push({ barcode: currentScannedCode, name: prod.name, price: prod.price, qty: 1 });
   }
-
-  if (lastScannedCode) {
-    globalProducts[lastScannedCode] = { name: nameVal, price: priceVal };
-    localStorage.setItem("myProducts", JSON.stringify(globalProducts));
-  }
-
-  const existing = currentBill.find(i => i.name === nameVal && i.price === priceVal);
-  if (existing) { existing.qty += qtyVal; } 
-  else { currentBill.push({ name: nameVal, price: priceVal, qty: qtyVal }); }
-
-  elName.value = ""; elPrice.value = ""; elQty.value = "1";
-  lastScannedCode = null;
   updateUI();
+}
+
+function showNewArea() {
+  document.getElementById("new-product-area").style.display = "block";
+  document.getElementById("in-name").focus();
+}
+
+function hideNewArea() {
+  document.getElementById("new-product-area").style.display = "none";
+  document.getElementById("in-name").value = "";
+  document.getElementById("in-price").value = "";
+}
+
+function saveAndAddItem() {
+  const name = document.getElementById("in-name").value;
+  const price = parseInt(document.getElementById("in-price").value);
+  if (!name || !price) return alert("Nhập đủ tên và giá!");
+
+  // Lưu vào từ điển
+  globalProducts[currentScannedCode] = { name: name, price: price };
+  localStorage.setItem("ngaiHuongProducts", JSON.stringify(globalProducts));
+
+  // Thêm vào giỏ
+  autoAddProduct({ name, price });
+  hideNewArea();
 }
 
 function changeQty(idx, amt) {
@@ -205,56 +153,58 @@ function changeQty(idx, amt) {
 }
 
 function updateUI() {
-  const listEl = document.getElementById("display-list");
-  let totalSum = 0;
+  const listEl = document.getElementById("cart-list");
+  let total = 0;
   let html = "";
 
   currentBill.forEach((item, i) => {
-    const sub = item.price * item.qty;
-    totalSum += sub;
+    const subTotal = item.price * item.qty;
+    total += subTotal;
     html += `
       <div class="item-row">
-        <div class="item-info">
-          <b>${item.name}</b>
-          <small>${item.price.toLocaleString()} ₫ x ${item.qty}</small>
-        </div>
-        <div class="qty-box">
+        <div class="item-name">${item.name}<br><small>${item.price.toLocaleString()}₫</small></div>
+        <div class="qty-control">
           <button class="btn-qty" onclick="changeQty(${i}, -1)">-</button>
-          <span style="font-weight:bold">${item.qty}</span>
+          <span class="qty-number">${item.qty}</span>
           <button class="btn-qty" onclick="changeQty(${i}, 1)">+</button>
         </div>
-        <div style="font-weight:700; color:var(--primary)">${sub.toLocaleString()}₫</div>
+        <div style="font-weight:bold; width: 80px; text-align:right">${subTotal.toLocaleString()}₫</div>
       </div>`;
   });
 
-  listEl.innerHTML = html || '<div style="text-align: center; color: var(--secondary); padding: 20px;">Giỏ hàng trống</div>';
-  document.getElementById("display-total").innerText = totalSum.toLocaleString() + " ₫";
-  document.getElementById("items-count").innerText = currentBill.length + " món";
+  listEl.innerHTML = html || '<p style="text-align: center; color: #999; padding: 20px;">Đang đợi quét mã...</p>';
+  document.getElementById("bill-total").innerText = total.toLocaleString() + " ₫";
 }
 
-function handleFinishBill() {
+function finishBill() {
   if (currentBill.length === 0) return;
   const total = currentBill.reduce((sum, i) => sum + (i.price * i.qty), 0);
-  globalBills[dateStr].push({ time: new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}), total: total });
-  localStorage.setItem("myBills", JSON.stringify(globalBills));
+  globalBills[dateKey].push({ time: new Date().toLocaleTimeString(), total: total });
+  localStorage.setItem("ngaiHuongBills", JSON.stringify(globalBills));
+  
   currentBill = [];
   updateUI();
   renderHistory();
-  alert("Thanh toán thành công!");
+  alert("Xong! Đã lưu hóa đơn.");
 }
 
 function renderHistory() {
-  const hEl = document.getElementById("display-history");
-  let html = "";
-  if (globalBills[dateStr]) {
-    globalBills[dateStr].slice().reverse().forEach(b => {
-      html += `<div class="history-item"><span>🕒 ${b.time}</span><b>${b.total.toLocaleString()} ₫</b></div>`;
-    });
+  let daySum = 0;
+  if (globalBills[dateKey]) {
+    daySum = globalBills[dateKey].reduce((sum, b) => sum + b.total, 0);
   }
-  hEl.innerHTML = html || "Chưa có đơn hàng.";
+  document.getElementById("day-total").innerText = daySum.toLocaleString() + " ₫";
 }
 
-renderHistory();
+function playBeep() {
+  const context = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = context.createOscillator();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(800, context.currentTime);
+  osc.connect(context.destination);
+  osc.start();
+  osc.stop(context.currentTime + 0.1);
+}
 </script>
 </body>
 </html>

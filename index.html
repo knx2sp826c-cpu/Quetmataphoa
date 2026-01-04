@@ -18,12 +18,10 @@
         .btn-purple { background: #5856d6; color: white; }
         .btn-black { background: #333; color: white; }
         
-        /* GIỎ HÀNG CHỮ TO */
         .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; font-size: 24px; } 
         .qty-controls { display: flex; align-items: center; gap: 15px; }
         .btn-qty { width: 45px; height: 45px; border-radius: 10px; border: 1px solid #007aff; background: #fff; font-size: 26px; font-weight: bold; color: #007aff; display: flex; justify-content: center; align-items: center; }
 
-        /* LỊCH SỬ & HÓA ĐƠN OVERLAY */
         #bill-overlay, #history-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .overlay-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 15px; }
         .bill-table, .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -134,7 +132,16 @@
 
     function addItemToCart(code) {
         let item = cart.find(i => i.barcode === code);
-        if (item) item.qty++; else cart.push({ barcode: code, name: globalProds[code].name, price: globalProds[code].price, qty: 1 });
+        if (item) {
+            // Nếu đã có trong giỏ, đưa nó lên đầu và tăng số lượng
+            const index = cart.indexOf(item);
+            cart.splice(index, 1);
+            item.qty++;
+            cart.unshift(item);
+        } else {
+            // Nếu là món mới quét, dùng unshift để chèn vào đầu danh sách
+            cart.unshift({ barcode: code, name: globalProds[code].name, price: globalProds[code].price, qty: 1 });
+        }
         updateUI();
     }
 
@@ -165,10 +172,10 @@
         const timeStr = now.toLocaleTimeString('vi-VN') + " " + now.toLocaleDateString('vi-VN');
         const totalVal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
         
-        // Lưu vào lịch sử cục bộ trên App
         saleHistory.unshift({ time: timeStr, total: totalVal });
 
         document.getElementById("bill-time-val").innerText = timeStr;
+        // Hóa đơn vẫn giữ thứ tự từ trên xuống như giỏ hàng đã sắp xếp
         document.getElementById("bill-items-body").innerHTML = cart.map(item => 
             `<tr><td>${item.name}</td><td align="center">${item.qty}</td><td align="right">${(item.price * item.qty).toLocaleString()}</td></tr>`
         ).join('');
@@ -178,7 +185,6 @@
         fetch(API_URL, { method: 'POST', body: JSON.stringify({ type: "history", time: timeStr, total: Number(totalVal) }) });
     }
 
-    // CHỨC NĂNG XEM LỊCH SỬ TRÊN APP
     function openHistory() {
         const historyBody = document.getElementById("history-items-body");
         let dayTotal = 0;

@@ -30,11 +30,10 @@
             background: #FFD700; color: #333; border: 3px solid #fff;
             font-size: 11px; font-weight: bold; text-align: center;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 99;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25); z-index: 99;
             line-height: 1.2; padding: 5px; cursor: pointer;
         }
 
-        /* Nút sửa giá màu đỏ ở vị trí yêu cầu */
         .btn-edit-price {
             position: absolute; right: 15px; top: 15px;
             width: 40px; height: 40px; border: 2px solid #ff3b30;
@@ -137,7 +136,7 @@
     let globalProds = JSON.parse(localStorage.getItem('huong_ngai_cache') || "{}"), cart = [], saleHistory = [], scanLock = false;
     let noCodeCount = 0;
     let currentModalTarget = null;
-    let isEditPriceMode = false; // Chế độ sửa giá
+    let isEditPriceMode = false;
 
     function playBeep() {
         try {
@@ -173,15 +172,18 @@
                 scanLock = true; 
                 playBeep();
 
-                // Nếu đang ở chế độ sửa giá
                 if (isEditPriceMode) {
                     isEditPriceMode = false;
                     document.querySelector('.btn-edit-price').style.background = "rgba(255, 59, 48, 0.2)";
                     if (globalProds[code]) {
                         showEditPriceInput(code);
                     } else {
-                        alert("Sản phẩm này chưa có trong hệ thống!");
-                        scanLock = false;
+                        // Tránh dùng alert ở đây để không treo camera
+                        document.getElementById("status-text").innerText = "Mã không tồn tại!";
+                        setTimeout(() => { 
+                            scanLock = false; 
+                            document.getElementById("status-text").innerText = "Sẵn sàng";
+                        }, 2000);
                     }
                     return;
                 }
@@ -201,7 +203,7 @@
     function enableEditPriceMode() {
         isEditPriceMode = true;
         document.querySelector('.btn-edit-price').style.background = "#ff3b30";
-        alert("Chế độ sửa giá: Hãy quét mã sản phẩm muốn đổi giá");
+        document.getElementById("status-text").innerText = "QUÉT MÃ ĐỂ SỬA GIÁ...";
     }
 
     function showEditPriceInput(code) {
@@ -210,7 +212,7 @@
         document.getElementById("modal-label").innerText = "Đổi giá: " + globalProds[code].name;
         document.getElementById("modal-field").value = globalProds[code].price;
         document.getElementById("num-modal").style.display = "flex";
-        document.getElementById("modal-field").focus();
+        setTimeout(() => document.getElementById("modal-field").focus(), 100);
     }
 
     function showNoCodeInput() {
@@ -218,7 +220,7 @@
         document.getElementById("modal-label").innerText = "Nhập giá mặt hàng:";
         document.getElementById("modal-field").value = "";
         document.getElementById("num-modal").style.display = "flex";
-        document.getElementById("modal-field").focus();
+        setTimeout(() => document.getElementById("modal-field").focus(), 100);
     }
 
     function showQtyInput(index) {
@@ -226,7 +228,7 @@
         document.getElementById("modal-label").innerText = "Nhập số lượng:";
         document.getElementById("modal-field").value = cart[index].qty;
         document.getElementById("num-modal").style.display = "flex";
-        document.getElementById("modal-field").focus();
+        setTimeout(() => document.getElementById("modal-field").focus(), 100);
     }
 
     function closeNumModal() { 
@@ -249,15 +251,12 @@
             });
             updateUI();
         } else if (currentModalTarget === "edit_price") {
-            // Cập nhật giá sản phẩm trong hệ thống
             const code = window.activeBarcode;
             const oldName = globalProds[code].name;
             globalProds[code].price = parseInt(val);
             localStorage.setItem('huong_ngai_cache', JSON.stringify(globalProds));
-            
-            // Gửi cập nhật lên Google Sheets
             fetch(API_URL, { method: 'POST', body: JSON.stringify({ data: [{ Barcode: code, Name: oldName, Price: val }] }) });
-            alert("Đã cập nhật giá mới cho " + oldName);
+            document.getElementById("status-text").innerText = "Đã cập nhật giá!";
         } else {
             cart[currentModalTarget].qty = parseInt(val);
             if (cart[currentModalTarget].qty <= 0) cart.splice(currentModalTarget, 1);
